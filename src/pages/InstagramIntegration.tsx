@@ -1,24 +1,79 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Instagram, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Instagram, CheckCircle2, XCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function InstagramIntegration() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [accessToken, setAccessToken] = useState("");
   const [instagramUserId, setInstagramUserId] = useState("");
+  const [instagramUsername, setInstagramUsername] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [useOAuth, setUseOAuth] = useState(true); // Default to OAuth flow
 
   useEffect(() => {
     checkConnection();
+    handleOAuthCallback();
   }, []);
+
+  const handleOAuthCallback = async () => {
+    // Check if we're returning from OAuth
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    const errorDescription = params.get("error_description");
+
+    if (error) {
+      console.error("OAuth error:", error, errorDescription);
+      toast.error(errorDescription || "Erro na autenticação com Facebook");
+      navigate("/instagram", { replace: true });
+      return;
+    }
+
+    if (code) {
+      setLoading(true);
+      try {
+        const redirectUri = `${window.location.origin}${window.location.pathname}`;
+        
+        const { data, error } = await supabase.functions.invoke(
+          "facebook-oauth-callback",
+          {
+            body: { code, redirectUri },
+          }
+        );
+
+        if (error) throw error;
+
+        if (data.success) {
+          toast.success(`Instagram conectado! Conta: @${data.instagramUsername}`);
+          setIsConnected(true);
+          setInstagramUsername(data.instagramUsername);
+          setInstagramUserId(data.instagramUserId);
+          setTokenExpiresAt(data.expiresAt);
+          navigate("/instagram", { replace: true });
+        } else {
+          throw new Error(data.error || "Erro ao conectar");
+        }
+      } catch (error: any) {
+        console.error("OAuth callback error:", error);
+        toast.error(error.message || "Erro ao completar autenticação");
+        navigate("/instagram", { replace: true });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const checkConnection = async () => {
     try {
@@ -27,16 +82,71 @@ export default function InstagramIntegration() {
 
       const { data } = await supabase
         .from("company_profiles")
-        .select("instagram_access_token, instagram_user_id")
+        .select("instagram_access_token, instagram_user_id, token_expires_at")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (data?.instagram_access_token && data?.instagram_user_id) {
         setIsConnected(true);
         setInstagramUserId(data.instagram_user_id);
+        setTokenExpiresAt(data.token_expires_at);
+        
+        // Fetch username from Instagram API
+        try {
+          const response = await fetch(
+            `https://graph.facebook.com/v18.0/${data.instagram_user_id}?fields=username&access_token=${data.instagram_access_token}`
+          );
+          const userData = await response.json();
+          if (userData.username) {
+            setInstagramUsername(userData.username);
+          }
+        } catch (err) {
+          console.error("Error fetching username:", err);
+        }
       }
     } catch (error) {
       console.error("Error checking connection:", error);
+    }
+  };
+
+  const startOAuthFlow = () => {
+    const appId = import.meta.env.VITE_FACEBOOK_APP_ID;
+    if (!appId) {
+      toast.error("Configuração OAuth não encontrada. Entre em contato com o suporte.");
+      return;
+    }
+
+    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement";
+    
+    const oauthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&scope=${scope}&response_type=code`;
+
+    window.location.href = oauthUrl;
+  };
+
+  const refreshToken = async () => {
+    setRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "refresh-instagram-token"
+      );
+
+      if (error) throw error;
+
+      if (data.success) {
+        setTokenExpiresAt(data.expiresAt);
+        toast.success(data.message);
+        await checkConnection();
+      } else {
+        throw new Error(data.error || "Erro ao renovar token");
+      }
+    } catch (error: any) {
+      console.error("Token refresh error:", error);
+      toast.error(error.message || "Erro ao renovar token");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -155,6 +265,8 @@ export default function InstagramIntegration() {
         .update({
           instagram_access_token: null,
           instagram_user_id: null,
+          facebook_page_id: null,
+          token_expires_at: null,
         })
         .eq("user_id", user.id);
 
@@ -162,12 +274,26 @@ export default function InstagramIntegration() {
 
       setAccessToken("");
       setInstagramUserId("");
+      setInstagramUsername("");
+      setTokenExpiresAt(null);
       setIsConnected(false);
       toast.success("Instagram desconectado");
     } catch (error) {
       console.error("Error disconnecting:", error);
       toast.error("Erro ao desconectar Instagram");
     }
+  };
+
+  const isTokenExpiringSoon = () => {
+    if (!tokenExpiresAt) return false;
+    const expiryDate = new Date(tokenExpiresAt);
+    const daysUntilExpiry = (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+    return daysUntilExpiry < 7; // Less than 7 days
+  };
+
+  const isTokenExpired = () => {
+    if (!tokenExpiresAt) return false;
+    return new Date(tokenExpiresAt) < new Date();
   };
 
   return (
@@ -199,34 +325,179 @@ export default function InstagramIntegration() {
             <div className="space-y-6">
               <div className="flex items-center gap-2 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-sm font-medium text-green-500">
-                  Instagram conectado com sucesso
-                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-500">
+                    Instagram conectado com sucesso
+                  </p>
+                  {instagramUsername && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      Conta: @{instagramUsername}
+                    </p>
+                  )}
+                </div>
               </div>
 
+              {isTokenExpired() && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Seu token expirou! Clique em "Renovar Token" ou reconecte sua conta.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!isTokenExpired() && isTokenExpiringSoon() && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Seu token expira em breve. Recomendamos renovar agora para evitar interrupções.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-4">
-                <div>
-                  <Label>Access Token</Label>
-                  <Input value="••••••••••••••••" disabled />
-                </div>
                 <div>
                   <Label>Instagram User ID</Label>
                   <Input value={instagramUserId || "••••••••"} disabled />
                 </div>
+                {tokenExpiresAt && (
+                  <div>
+                    <Label>Token expira em</Label>
+                    <Input
+                      value={new Date(tokenExpiresAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      disabled
+                    />
+                  </div>
+                )}
               </div>
 
-              <Button
-                variant="destructive"
-                onClick={handleDisconnect}
-                className="w-full"
-              >
-                Desconectar Instagram
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={refreshToken}
+                  disabled={refreshing}
+                  className="flex-1"
+                >
+                  {refreshing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Renovando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Renovar Token
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  className="flex-1"
+                >
+                  Desconectar
+                </Button>
+              </div>
+
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-xs text-muted-foreground">
+                  💡 <strong>Dica:</strong> Renove seu token a cada 60 dias para manter a conexão ativa. 
+                  O sistema irá alertá-lo quando estiver próximo do vencimento.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
+              {/* OAuth Flow */}
+              {useOAuth ? (
+                <div className="space-y-6">
+                  <div className="p-6 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-orange-500/10 border border-purple-500/20 rounded-lg space-y-4">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-1" />
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-lg">Conexão Simplificada com Instagram</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Conecte sua conta Instagram Business em apenas 3 cliques, sem complicações!
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 ml-9">
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                          1
+                        </div>
+                        <p className="text-sm">Clique em "Conectar com Facebook"</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                          2
+                        </div>
+                        <p className="text-sm">Faça login com sua conta do Facebook</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                          3
+                        </div>
+                        <p className="text-sm">Autorize o acesso à sua página/Instagram Business</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      <strong>Importante:</strong> Sua conta do Instagram deve estar configurada como Instagram Business 
+                      e conectada a uma Página do Facebook. Se ainda não fez isso, configure em: 
+                      Instagram → Configurações → Conta → Mudar para conta profissional.
+                    </AlertDescription>
+                  </Alert>
+
+                  <Button
+                    onClick={startOAuthFlow}
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                        Conectando...
+                      </>
+                    ) : (
+                      <>
+                        <Instagram className="h-5 w-5 mr-2" />
+                        Conectar com Facebook
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-center">
+                    <button
+                      onClick={() => setUseOAuth(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Prefiro conectar manualmente com tokens
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Manual Token Flow */
+                <div className="space-y-6">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Atenção:</strong> O método manual é mais complexo e não recomendado. 
+                      Use apenas se tiver experiência técnica com APIs do Facebook.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
                   <p className="text-sm font-medium">Como obter suas credenciais do Instagram Graph API:</p>
                   
                   <div className="space-y-4">
@@ -293,23 +564,34 @@ export default function InstagramIntegration() {
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <Button
-                  onClick={testConnection}
-                  disabled={testing || loading}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  {testing ? "Testando..." : "Testar Conexão"}
-                </Button>
-                <Button
-                  onClick={handleConnect}
-                  disabled={loading || testing}
-                  className="flex-1"
-                >
-                  {loading ? "Conectando..." : "Conectar Instagram"}
-                </Button>
-              </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={testConnection}
+                      disabled={testing || loading}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {testing ? "Testando..." : "Testar Conexão"}
+                    </Button>
+                    <Button
+                      onClick={handleConnect}
+                      disabled={loading || testing}
+                      className="flex-1"
+                    >
+                      {loading ? "Conectando..." : "Conectar Instagram"}
+                    </Button>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      onClick={() => setUseOAuth(true)}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Voltar para conexão simplificada (recomendado)
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>

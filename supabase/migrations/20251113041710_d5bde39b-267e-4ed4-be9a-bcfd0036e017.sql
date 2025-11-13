@@ -1,0 +1,2 @@
+-- Fix function search path for existing function
+ALTER FUNCTION public.handle_updated_at() SET search_path = public, pg_temp;
