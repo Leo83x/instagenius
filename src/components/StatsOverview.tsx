@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Calendar, FileText, Clock, TrendingUp } from "lucide-react";
+import { Calendar, FileText, Clock, TrendingUp, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export function StatsOverview() {
   const [stats, setStats] = useState({
     postsGerados: 0,
     postsAgendados: 0,
+    aiCredits: 0,
+    aiCreditsTotal: 100,
   });
 
   useEffect(() => {
@@ -29,9 +31,17 @@ export function StatsOverview() {
         .eq("user_id", user.id)
         .eq("status", "scheduled");
 
+      const { data: profile } = await supabase
+        .from("company_profiles")
+        .select("ai_credits_remaining, ai_credits_total")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       setStats({
         postsGerados: posts?.length || 0,
         postsAgendados: scheduled?.length || 0,
+        aiCredits: profile?.ai_credits_remaining || 0,
+        aiCreditsTotal: profile?.ai_credits_total || 100,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -61,10 +71,10 @@ export function StatsOverview() {
       gradient: "from-orange-500 to-yellow-500"
     },
     {
-      label: "Publicações",
-      value: "Em breve",
-      change: "Instagram",
-      icon: TrendingUp,
+      label: "Créditos IA",
+      value: stats.aiCredits.toString(),
+      change: `de ${stats.aiCreditsTotal}`,
+      icon: CreditCard,
       gradient: "from-yellow-500 to-pink-500"
     }
   ];
