@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       company_profiles: {
         Row: {
+          ai_credits_last_reset: string | null
+          ai_credits_remaining: number | null
+          ai_credits_total: number | null
           bio: string | null
           brand_colors: string[] | null
           category: string | null
@@ -39,6 +42,9 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          ai_credits_last_reset?: string | null
+          ai_credits_remaining?: number | null
+          ai_credits_total?: number | null
           bio?: string | null
           brand_colors?: string[] | null
           category?: string | null
@@ -62,6 +68,9 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          ai_credits_last_reset?: string | null
+          ai_credits_remaining?: number | null
+          ai_credits_total?: number | null
           bio?: string | null
           brand_colors?: string[] | null
           category?: string | null
@@ -166,6 +175,86 @@ export type Database = {
           },
         ]
       }
+      hashtag_trends: {
+        Row: {
+          category: string | null
+          created_at: string
+          hashtag: string
+          id: string
+          last_updated: string | null
+          trending_score: number | null
+          usage_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          hashtag: string
+          id?: string
+          last_updated?: string | null
+          trending_score?: number | null
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          hashtag?: string
+          id?: string
+          last_updated?: string | null
+          trending_score?: number | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      post_analytics: {
+        Row: {
+          comments_count: number | null
+          created_at: string
+          engagement_rate: number | null
+          id: string
+          impressions: number | null
+          instagram_media_id: string | null
+          last_updated: string | null
+          likes_count: number | null
+          post_id: string
+          reach: number | null
+          shares_count: number | null
+        }
+        Insert: {
+          comments_count?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          instagram_media_id?: string | null
+          last_updated?: string | null
+          likes_count?: number | null
+          post_id: string
+          reach?: number | null
+          shares_count?: number | null
+        }
+        Update: {
+          comments_count?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          instagram_media_id?: string | null
+          last_updated?: string | null
+          likes_count?: number | null
+          post_id?: string
+          reach?: number | null
+          shares_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "generated_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_posts: {
         Row: {
           created_at: string
@@ -218,6 +307,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_type: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      theme_suggestions: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          frequency: string | null
+          id: string
+          is_active: boolean | null
+          suggested_hashtags: string[] | null
+          theme_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          suggested_hashtags?: string[] | null
+          theme_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          suggested_hashtags?: string[] | null
+          theme_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
