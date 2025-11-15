@@ -1,12 +1,16 @@
-import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2 } from "lucide-react";
+import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NavLink } from "./NavLink";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
 
 export function Header() {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -19,36 +23,106 @@ export function Header() {
     }
   };
 
+  const navItems = [
+    { to: "/", label: "Dashboard", icon: Instagram },
+    { to: "/posts", label: "Posts Salvos", icon: BookmarkCheck },
+    { to: "/analytics", label: "Analytics", icon: BarChart3 },
+    { to: "/hashtags", label: "Hashtags", icon: Hash },
+    { to: "/themes", label: "Temas", icon: Lightbulb },
+    { to: "/subscription", label: "Planos", icon: CreditCard },
+    { to: "/instagram", label: "Instagram", icon: Link2 },
+    { to: "/settings", label: "Configurações", icon: SettingsIcon },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 md:gap-8">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-instagram">
               <Instagram className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-display font-bold">InstaGenius</h1>
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-display font-bold">Studio Genius</h1>
               <p className="text-xs text-muted-foreground">Gerador de Conteúdo IA</p>
             </div>
           </div>
           
-          <nav className="hidden md:flex items-center gap-6">
-            <NavLink to="/">Dashboard</NavLink>
-            <NavLink to="/posts">Posts Salvos</NavLink>
-            <NavLink to="/instagram">Instagram</NavLink>
-            <NavLink to="/settings">Configurações</NavLink>
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-4">
+            {navItems.slice(0, 5).map((item) => (
+              <NavLink key={item.to} to={item.to}>
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
         
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sair
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Desktop Sign Out */}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleSignOut}
+            className="hidden md:flex"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
+
+          {/* Mobile Menu */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+              <div className="flex flex-col gap-4 mt-8">
+                <div className="flex items-center gap-3 pb-4 border-b">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-instagram">
+                    <Instagram className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-display font-bold">Studio Genius</h2>
+                    <p className="text-xs text-muted-foreground">Menu</p>
+                  </div>
+                </div>
+                
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Button
+                        key={item.to}
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => {
+                          navigate(item.to);
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        <Icon className="h-4 w-4 mr-2" />
+                        {item.label}
+                      </Button>
+                    );
+                  })}
+                </nav>
+
+                <div className="pt-4 border-t mt-auto">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sair
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

@@ -8,6 +8,10 @@ import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import SavedPosts from "./pages/SavedPosts";
 import InstagramIntegration from "./pages/InstagramIntegration";
+import Analytics from "./pages/Analytics";
+import HashtagExplorer from "./pages/HashtagExplorer";
+import ThemeSuggestions from "./pages/ThemeSuggestions";
+import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +68,10 @@ const App = () => {
             <Route path="/settings" element={<Settings />} />
             <Route path="/posts" element={<SavedPosts />} />
             <Route path="/instagram" element={<InstagramIntegration />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/hashtags" element={<HashtagExplorer />} />
+            <Route path="/themes" element={<ThemeSuggestions />} />
+            <Route path="/subscription" element={<Subscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
