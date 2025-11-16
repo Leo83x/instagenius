@@ -39,14 +39,14 @@ export default function HashtagExplorer() {
   const copyHashtag = (hashtag: string) => {
     navigator.clipboard.writeText(hashtag);
     setCopiedHashtag(hashtag);
-    toast.success("Hashtag copiada!");
+    toast.success(`${hashtag} copiada para área de transferência`);
     setTimeout(() => setCopiedHashtag(null), 2000);
   };
 
   const copyAllHashtags = () => {
     const allTags = filteredHashtags.map(h => h.tag).join(" ");
     navigator.clipboard.writeText(allTags);
-    toast.success("Todas hashtags copiadas!");
+    toast.success(`${filteredHashtags.length} hashtags copiadas para área de transferência`);
   };
 
   return (
