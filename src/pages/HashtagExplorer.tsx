@@ -4,15 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Search, TrendingUp, Hash, Copy, Check, Clipboard } from "lucide-react";
+import { Search, TrendingUp, Hash, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export default function HashtagExplorer() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedHashtag, setCopiedHashtag] = useState<string | null>(null);
-  const [pasteArea, setPasteArea] = useState("");
 
   // Mock trending hashtags - in production, fetch from API/database
   const trendingHashtags = [
@@ -64,42 +61,23 @@ export default function HashtagExplorer() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="p-4 md:p-6 shadow-smooth">
-            <div className="space-y-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar hashtags por palavra-chave ou categoria..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button onClick={copyAllHashtags} variant="outline" className="w-full">
-                <Copy className="h-4 w-4 mr-2" />
-                Copiar Todas Hashtags
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-4 md:p-6 shadow-smooth">
-            <div className="space-y-3">
-              <Label htmlFor="pasteArea" className="flex items-center gap-2">
-                <Clipboard className="h-4 w-4" />
-                Área de Colagem (Cole suas hashtags aqui)
-              </Label>
-              <Textarea
-                id="pasteArea"
-                placeholder="Cole suas hashtags copiadas aqui..."
-                value={pasteArea}
-                onChange={(e) => setPasteArea(e.target.value)}
-                rows={3}
-                className="resize-none"
+        <Card className="p-4 md:p-6 shadow-smooth">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar hashtags por palavra-chave ou categoria..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
             </div>
-          </Card>
-        </div>
+            <Button onClick={copyAllHashtags} variant="outline">
+              <Copy className="h-4 w-4 mr-2" />
+              Copiar Todas
+            </Button>
+          </div>
+        </Card>
 
         <div className="grid gap-3 md:gap-4">
           {filteredHashtags.map((hashtag, index) => (

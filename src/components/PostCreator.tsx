@@ -216,26 +216,6 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                     ))}
                   </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="logo" className="text-xs">Logo da Empresa</Label>
-                  <div className="mt-2">
-                    <Button variant="outline" className="w-full" size="sm">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Logo
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <Label htmlFor="include-logo" className="text-xs">Incluir logo na arte</Label>
-                  <input
-                    type="checkbox"
-                    id="include-logo"
-                    className="h-4 w-4 rounded border-gray-300"
-                    defaultChecked
-                  />
-                </div>
               </Card>
             </div>
 

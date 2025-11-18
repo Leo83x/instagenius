@@ -24,14 +24,14 @@ export function Header() {
   };
 
   const navItems = [
-    { to: "/", label: "Dashboard", icon: Instagram },
-    { to: "/posts", label: "Posts Salvos", icon: BookmarkCheck },
-    { to: "/analytics", label: "Analytics", icon: BarChart3 },
-    { to: "/hashtags", label: "Hashtags", icon: Hash },
+    { to: "/", label: "Início", icon: Instagram },
+    { to: "/posts", label: "Posts", icon: BookmarkCheck },
     { to: "/themes", label: "Temas", icon: Lightbulb },
-    { to: "/subscription", label: "Planos", icon: CreditCard },
+    { to: "/hashtags", label: "Hashtags", icon: Hash },
+    { to: "/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/instagram", label: "Instagram", icon: Link2 },
-    { to: "/settings", label: "Configurações", icon: SettingsIcon },
+    { to: "/subscription", label: "Planos", icon: CreditCard },
+    { to: "/settings", label: "Config", icon: SettingsIcon },
   ];
 
   return (
@@ -49,7 +49,7 @@ export function Header() {
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4">
+          <nav className="hidden lg:flex items-center gap-2">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to}>
                 {item.label}
