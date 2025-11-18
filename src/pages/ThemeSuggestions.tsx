@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { ThemeCalendar } from "@/components/ThemeCalendar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Lightbulb, Plus, Calendar, Sparkles, Loader2, Copy } from "lucide-react";
+import { Lightbulb, Plus, Sparkles, Loader2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface ThemeSuggestion {
@@ -172,11 +173,15 @@ export default function ThemeSuggestions() {
         </div>
 
         {!profileExists && (
-          <Card className="p-6 border-yellow-200 bg-yellow-50">
-            <p className="text-sm text-yellow-800">
+          <Card className="p-6 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 dark:border-yellow-800">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
               Complete seu perfil em <strong>Configurações</strong> para receber sugestões personalizadas.
             </p>
           </Card>
+        )}
+
+        {savedThemes.length > 0 && (
+          <ThemeCalendar savedThemes={savedThemes} />
         )}
 
         {suggestions.length > 0 && (
@@ -199,7 +204,6 @@ export default function ThemeSuggestions() {
                     <div className="flex flex-wrap gap-2">
                       <Badge className={categoryColors[theme.category] || ""}>{theme.category}</Badge>
                       <Badge variant="outline">
-                        <Calendar className="h-3 w-3 mr-1" />
                         {frequencyLabels[theme.frequency]}
                       </Badge>
                     </div>
@@ -246,7 +250,6 @@ export default function ThemeSuggestions() {
                     <div className="flex flex-wrap gap-2">
                       <Badge className={categoryColors[theme.category] || ""}>{theme.category}</Badge>
                       <Badge variant="outline">
-                        <Calendar className="h-3 w-3 mr-1" />
                         {frequencyLabels[theme.frequency]}
                       </Badge>
                     </div>
@@ -285,7 +288,6 @@ export default function ThemeSuggestions() {
                   {selectedTheme.category}
                 </Badge>
                 <Badge variant="outline">
-                  <Calendar className="h-3 w-3 mr-1" />
                   {frequencyLabels[selectedTheme.frequency]}
                 </Badge>
               </div>
