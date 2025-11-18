@@ -50,7 +50,7 @@ export function Header() {
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-4">
-            {navItems.slice(0, 6).map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.to} to={item.to}>
                 {item.label}
               </NavLink>
