@@ -278,6 +278,8 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
         const fileName = `${crypto.randomUUID()}.png`;
         const filePath = `${userId || 'anonymous'}/${fileName}`;
         
+        console.log(`Uploading image to path: ${filePath}`);
+        
         const { data: uploadData, error: uploadError } = await supabaseClient
           .storage
           .from('generated-images')
@@ -287,17 +289,40 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
           });
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
-          throw uploadError;
+          console.error('Storage upload error:', uploadError);
+          console.error('Upload error details:', JSON.stringify(uploadError));
+          // Try alternative path without userId
+          const altPath = `posts/${fileName}`;
+          console.log(`Retrying upload with alternative path: ${altPath}`);
+          
+          const { data: retryData, error: retryError } = await supabaseClient
+            .storage
+            .from('generated-images')
+            .upload(altPath, binaryData, {
+              contentType: 'image/png',
+              upsert: false
+            });
+          
+          if (retryError) {
+            console.error('Retry upload also failed:', retryError);
+            throw new Error(`Upload failed: ${retryError.message}`);
+          }
+          
+          const { data: retryUrlData } = supabaseClient
+            .storage
+            .from('generated-images')
+            .getPublicUrl(altPath);
+          
+          variation.imageUrl = retryUrlData.publicUrl;
+        } else {
+          // Get public URL
+          const { data: urlData } = supabaseClient
+            .storage
+            .from('generated-images')
+            .getPublicUrl(filePath);
+
+          variation.imageUrl = urlData.publicUrl;
         }
-
-        // Get public URL
-        const { data: urlData } = supabaseClient
-          .storage
-          .from('generated-images')
-          .getPublicUrl(filePath);
-
-        variation.imageUrl = urlData.publicUrl;
         console.log(`Image generated and uploaded for variant ${variation.variant}:`, variation.imageUrl);
         
       } catch (imageError: any) {

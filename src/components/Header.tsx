@@ -1,4 +1,4 @@
-import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, MoreVertical, User } from "lucide-react";
+import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,11 +28,11 @@ export function Header() {
     { to: "/", label: "Início", icon: Instagram },
     { to: "/posts", label: "Posts", icon: BookmarkCheck },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  ];
-
-  const moreNavItems = [
     { to: "/themes", label: "Temas", icon: Lightbulb },
     { to: "/hashtags", label: "Hashtags", icon: Hash },
+  ];
+
+  const accountMenuItems = [
     { to: "/instagram", label: "Instagram", icon: Link2 },
     { to: "/subscription", label: "Planos", icon: CreditCard },
     { to: "/settings", label: "Configurações", icon: SettingsIcon },
@@ -53,23 +53,24 @@ export function Header() {
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-3">
-            {mainNavItems.map((item) => (
-              <NavLink key={item.to} to={item.to}>
-                {item.label}
-              </NavLink>
-            ))}
+          <div className="hidden lg:flex items-center gap-3">
+            <nav className="flex items-center gap-2">
+              {mainNavItems.map((item) => (
+                <NavLink key={item.to} to={item.to}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
             
-            {/* More Menu Dropdown */}
+            {/* Account Menu Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <MoreVertical className="h-4 w-4" />
-                  Mais
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {moreNavItems.map((item) => {
+                {accountMenuItems.map((item) => {
                   const Icon = item.icon;
                   return (
                     <DropdownMenuItem key={item.to} onClick={() => navigate(item.to)}>
@@ -78,9 +79,14 @@ export function Header() {
                     </DropdownMenuItem>
                   );
                 })}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </nav>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
@@ -115,7 +121,7 @@ export function Header() {
                 </div>
                 
                 <nav className="flex flex-col gap-2">
-                  {[...mainNavItems, ...moreNavItems].map((item) => {
+                  {[...mainNavItems, ...accountMenuItems].map((item) => {
                     const Icon = item.icon;
                     return (
                       <Button
