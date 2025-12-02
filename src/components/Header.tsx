@@ -90,17 +90,6 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Desktop Sign Out */}
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={handleSignOut}
-            className="hidden md:flex"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </Button>
-
           {/* Mobile Menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
