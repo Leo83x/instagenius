@@ -9,18 +9,115 @@ import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Clock, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Trash2, GripVertical } from "lucide-react";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
-export function ScheduleCalendar() {
+interface SavedPost {
+  id: string;
+  caption: string;
+  image_url: string | null;
+}
+
+interface ScheduledPost {
+  id: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  generated_post_id: string | null;
+  generated_posts?: SavedPost;
+}
+
+const ItemType = {
+  POST: "post"
+};
+
+function DraggablePost({ post }: { post: SavedPost }) {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: ItemType.POST,
+    item: { postId: post.id },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging()
+    })
+  }));
+
+  return (
+    <div
+      ref={drag}
+      className={`p-3 border rounded-lg cursor-move hover:bg-muted transition-colors ${
+        isDragging ? "opacity-50" : ""
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{post.caption.substring(0, 50)}...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DroppableCalendarDay({ 
+  date, 
+  onDrop 
+}: { 
+  date: Date; 
+  onDrop: (postId: string, date: Date) => void;
+}) {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: ItemType.POST,
+    drop: (item: { postId: string }) => {
+      onDrop(item.postId, date);
+    },
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver()
+    })
+  }));
+
+  return (
+    <div
+      ref={drop}
+      className={`min-h-[60px] p-2 border rounded transition-colors ${
+        isOver ? "bg-primary/10 border-primary" : ""
+      }`}
+    >
+      <div className="text-xs font-medium mb-1">{format(date, "d", { locale: ptBR })}</div>
+    </div>
+  );
+}
+
+function ScheduleCalendarContent() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedTime, setSelectedTime] = useState("12:00");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadScheduledPosts();
+    loadSavedPosts();
   }, []);
+
+  const loadSavedPosts = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("generated_posts")
+        .select("id, caption, image_url")
+        .eq("user_id", user.id)
+        .eq("status", "draft")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setSavedPosts(data || []);
+    } catch (error: any) {
+      console.error("Error loading saved posts:", error);
+    }
+  };
 
   const loadScheduledPosts = async () => {
     try {
@@ -31,7 +128,7 @@ export function ScheduleCalendar() {
         .from("scheduled_posts")
         .select(`
           *,
-          generated_posts (*)
+          generated_posts (id, caption, image_url)
         `)
         .eq("user_id", user.id)
         .eq("status", "scheduled")
@@ -41,6 +138,45 @@ export function ScheduleCalendar() {
       setScheduledPosts(data || []);
     } catch (error: any) {
       console.error("Error loading scheduled posts:", error);
+    }
+  };
+
+  const handleDrop = async (postId: string, dropDate: Date) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("company_profiles")
+        .select("instagram_access_token")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profile?.instagram_access_token) {
+        toast.error("Conecte sua conta do Instagram primeiro");
+        return;
+      }
+
+      const scheduleData = {
+        user_id: user.id,
+        generated_post_id: postId,
+        scheduled_date: format(dropDate, "yyyy-MM-dd"),
+        scheduled_time: "12:00",
+        status: "scheduled",
+      };
+
+      const { error } = await supabase
+        .from("scheduled_posts")
+        .insert(scheduleData);
+
+      if (error) throw error;
+
+      toast.success(`Post agendado para ${format(dropDate, "dd/MM/yyyy", { locale: ptBR })}`);
+      loadScheduledPosts();
+      loadSavedPosts();
+    } catch (error: any) {
+      console.error("Error scheduling post:", error);
+      toast.error("Erro ao agendar post");
     }
   };
 
@@ -55,7 +191,6 @@ export function ScheduleCalendar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Check if Instagram is connected
       const { data: profile } = await supabase
         .from("company_profiles")
         .select("instagram_access_token")
@@ -103,6 +238,7 @@ export function ScheduleCalendar() {
 
       toast.success("Agendamento removido");
       loadScheduledPosts();
+      loadSavedPosts();
     } catch (error: any) {
       console.error("Error deleting schedule:", error);
       toast.error("Erro ao remover agendamento");
@@ -112,9 +248,12 @@ export function ScheduleCalendar() {
   const nextPost = scheduledPosts[0];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card className="p-6">
+    <div className="grid gap-6 lg:grid-cols-3">
+      <Card className="p-6 lg:col-span-2">
         <h2 className="text-xl font-display font-bold mb-4">Calendário de Publicações</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Arraste posts salvos para o calendário para agendá-los
+        </p>
         <div className="flex justify-center mb-4">
           <Calendar
             mode="single"
@@ -122,13 +261,18 @@ export function ScheduleCalendar() {
             onSelect={setDate}
             locale={ptBR}
             className="rounded-md border"
+            components={{
+              Day: ({ date: dayDate }) => (
+                <DroppableCalendarDay date={dayDate} onDrop={handleDrop} />
+              )
+            }}
           />
         </div>
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
             <Button className="w-full">
               <CalendarIcon className="h-4 w-4 mr-2" />
-              Agendar Publicação
+              Agendar Manualmente
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -176,42 +320,72 @@ export function ScheduleCalendar() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-display font-bold mb-4">Posts Agendados</h2>
-        <div className="space-y-4">
-          {scheduledPosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum post agendado
-            </p>
-          ) : (
-            scheduledPosts.map((post) => (
-              <div
-                key={post.id}
-                className="p-4 border rounded-lg space-y-2"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      {format(new Date(post.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3" />
-                      {post.scheduled_time}
+      <div className="space-y-6">
+        <Card className="p-6">
+          <h2 className="text-xl font-display font-bold mb-4">Posts Salvos</h2>
+          <div className="space-y-2">
+            {savedPosts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum post salvo
+              </p>
+            ) : (
+              savedPosts.map((post) => (
+                <DraggablePost key={post.id} post={post} />
+              ))
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-xl font-display font-bold mb-4">Posts Agendados</h2>
+          <div className="space-y-3">
+            {scheduledPosts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum post agendado
+              </p>
+            ) : (
+              scheduledPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="p-3 border rounded-lg space-y-2"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {format(new Date(post.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <Clock className="h-3 w-3" />
+                        {post.scheduled_time}
+                      </div>
+                      {post.generated_posts && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {post.generated_posts.caption.substring(0, 40)}...
+                        </p>
+                      )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(post.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(post.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </Card>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
+  );
+}
+
+export function ScheduleCalendar() {
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ScheduleCalendarContent />
+    </DndProvider>
   );
 }

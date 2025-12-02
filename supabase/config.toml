@@ -2,3 +2,9 @@ project_id = "fqmrhqjxkqmytpbmppce"
 
 [functions.suggest-themes]
 verify_jwt = true
+
+[functions.search-hashtags]
+verify_jwt = true
+
+[functions.generate-post]
+verify_jwt = true
