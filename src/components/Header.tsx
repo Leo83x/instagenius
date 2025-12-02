@@ -1,4 +1,4 @@
-import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, User } from "lucide-react";
+import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, User, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,7 @@ export function Header() {
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/themes", label: "Temas", icon: Lightbulb },
     { to: "/hashtags", label: "Hashtags", icon: Hash },
+    { to: "/images", label: "Imagens", icon: Image },
   ];
 
   const accountMenuItems = [
@@ -53,16 +54,18 @@ export function Header() {
           </div>
           
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-3">
-            <nav className="flex items-center gap-2">
-              {mainNavItems.map((item) => (
-                <NavLink key={item.to} to={item.to}>
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-            
-            {/* Account Menu Dropdown */}
+          <nav className="hidden lg:flex items-center gap-6 flex-1">
+            {mainNavItems.map((item) => (
+              <NavLink key={item.to} to={item.to}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Account Menu Dropdown - Desktop */}
+          <div className="hidden lg:block">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
@@ -80,16 +83,14 @@ export function Header() {
                   );
                 })}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
+          
           {/* Mobile Menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>

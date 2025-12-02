@@ -205,6 +205,39 @@ export type Database = {
         }
         Relationships: []
       }
+      image_library: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          storage_path: string
+          tags: string[] | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          storage_path: string
+          tags?: string[] | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          storage_path?: string
+          tags?: string[] | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       post_analytics: {
         Row: {
           comments_count: number | null

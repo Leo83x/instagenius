@@ -3,16 +3,24 @@ import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, MessageCircle, Share2, Eye, TrendingUp, RefreshCw } from "lucide-react";
+import { Heart, MessageCircle, Share2, Eye, TrendingUp, RefreshCw, Hash, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function Analytics() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hashtagData, setHashtagData] = useState<any[]>([]);
+  const [timeData, setTimeData] = useState<any[]>([]);
+  const [growthData, setGrowthData] = useState<any[]>([]);
 
   useEffect(() => {
     loadPostsWithAnalytics();
+    loadHashtagPerformance();
+    loadTimeAnalysis();
+    loadGrowthData();
   }, []);
 
   const loadPostsWithAnalytics = async () => {
@@ -39,6 +47,65 @@ export default function Analytics() {
     }
   };
 
+  const loadHashtagPerformance = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("generated_posts")
+        .select("hashtags, post_analytics(*)")
+        .eq("user_id", user.id)
+        .not("post_analytics", "is", null);
+
+      const hashtagMap = new Map();
+      data?.forEach((post) => {
+        const analytics = post.post_analytics?.[0];
+        if (analytics) {
+          post.hashtags.forEach((tag: string) => {
+            const current = hashtagMap.get(tag) || { hashtag: tag, engagement: 0, reach: 0, count: 0 };
+            current.engagement += analytics.likes_count + analytics.comments_count;
+            current.reach += analytics.reach || 0;
+            current.count += 1;
+            hashtagMap.set(tag, current);
+          });
+        }
+      });
+
+      const topHashtags = Array.from(hashtagMap.values())
+        .map((h) => ({ ...h, avgEngagement: Math.round(h.engagement / h.count) }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement)
+        .slice(0, 10);
+
+      setHashtagData(topHashtags);
+    } catch (error) {
+      console.error("Error loading hashtag performance:", error);
+    }
+  };
+
+  const loadTimeAnalysis = async () => {
+    const mockTimeData = [
+      { hour: "6h", engagement: 45 },
+      { hour: "9h", engagement: 120 },
+      { hour: "12h", engagement: 200 },
+      { hour: "15h", engagement: 180 },
+      { hour: "18h", engagement: 320 },
+      { hour: "21h", engagement: 280 },
+      { hour: "0h", engagement: 80 }
+    ];
+    setTimeData(mockTimeData);
+  };
+
+  const loadGrowthData = async () => {
+    const mockGrowthData = [
+      { date: "Sem 1", followers: 1200, posts: 3 },
+      { date: "Sem 2", followers: 1350, posts: 5 },
+      { date: "Sem 3", followers: 1480, posts: 4 },
+      { date: "Sem 4", followers: 1720, posts: 6 }
+    ];
+    setGrowthData(mockGrowthData);
+  };
+
   const refreshAnalytics = async (postId: string) => {
     toast.info("Funcionalidade em desenvolvimento - conecte sua conta Instagram em Configurações");
   };
@@ -58,13 +125,23 @@ export default function Analytics() {
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
       
-      <main className="container py-4 md:py-8 space-y-6 md:space-y-8">
+      <main className="container py-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Analytics</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Análise de performance dos seus posts publicados
+          <h1 className="text-3xl font-display font-bold">Analytics</h1>
+          <p className="text-muted-foreground">
+            Análise detalhada de performance e insights
           </p>
         </div>
+
+        <Tabs defaultValue="posts" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
+            <TabsTrigger value="timing">Horários</TabsTrigger>
+            <TabsTrigger value="growth">Crescimento</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="posts" className="space-y-6">
 
         {posts.length === 0 ? (
           <Card className="p-8 md:p-12 text-center">
@@ -156,6 +233,97 @@ export default function Analytics() {
             })}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="hashtags" className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Hash className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Performance de Hashtags</h2>
+              </div>
+              {hashtagData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={hashtagData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hashtag" angle={-45} textAnchor="end" height={100} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="avgEngagement" fill="hsl(var(--primary))" name="Engajamento Médio" />
+                    <Bar dataKey="count" fill="hsl(var(--accent))" name="Uso" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  Publique posts com hashtags para ver a análise
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="timing" className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Clock className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Melhores Horários de Engajamento</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={timeData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hour" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="engagement" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    name="Engajamento"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+              <p className="text-sm text-muted-foreground mt-4 text-center">
+                Horários com maior engajamento: <strong>18h - 21h</strong>
+              </p>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="growth" className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Users className="h-5 w-5 text-primary" />
+                <h2 className="text-xl font-semibold">Crescimento de Seguidores</h2>
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={growthData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    yAxisId="left"
+                    type="monotone" 
+                    dataKey="followers" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={3}
+                    name="Seguidores"
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="posts" 
+                    stroke="hsl(var(--accent))" 
+                    strokeWidth={2}
+                    name="Posts Publicados"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

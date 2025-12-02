@@ -11,6 +11,7 @@ import InstagramIntegration from "./pages/InstagramIntegration";
 import Analytics from "./pages/Analytics";
 import HashtagExplorer from "./pages/HashtagExplorer";
 import ThemeSuggestions from "./pages/ThemeSuggestions";
+import ImageLibrary from "./pages/ImageLibrary";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
@@ -71,6 +72,7 @@ const App = () => {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/hashtags" element={<HashtagExplorer />} />
             <Route path="/themes" element={<ThemeSuggestions />} />
+            <Route path="/images" element={<ImageLibrary />} />
             <Route path="/subscription" element={<Subscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
