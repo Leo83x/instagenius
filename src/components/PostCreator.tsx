@@ -21,7 +21,7 @@ interface PostCreatorProps {
 }
 
 export function PostCreator({ onPostGenerated }: PostCreatorProps) {
-  const [postType, setPostType] = useState<"feed" | "story">("feed");
+  const [postType, setPostType] = useState<"feed" | "story" | "reel">("feed");
   const [objective, setObjective] = useState("");
   const [theme, setTheme] = useState("");
   const [tone, setTone] = useState("professional");
@@ -139,10 +139,11 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
               Descreva sua ideia e deixe a IA criar o conteúdo perfeito
             </p>
           </div>
-          <Tabs value={postType} onValueChange={(v) => setPostType(v as "feed" | "story")}>
-            <TabsList>
+          <Tabs value={postType} onValueChange={(v) => setPostType(v as "feed" | "story" | "reel")}>
+            <TabsList className="grid grid-cols-3">
               <TabsTrigger value="feed">Feed</TabsTrigger>
               <TabsTrigger value="story">Story</TabsTrigger>
+              <TabsTrigger value="reel">Reel</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
