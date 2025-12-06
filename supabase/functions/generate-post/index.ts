@@ -41,7 +41,9 @@ serve(async (req) => {
       targetAudience,
       keywords = [],
       maxHashtags = 10,
-      userId
+      userId,
+      includeLogo = false,
+      logoUrl
     } = await req.json();
 
     console.log('Generating post with params:', { objective, theme, tone, style, postType });
@@ -99,12 +101,12 @@ REGRAS OBRIGATÓRIAS:
 
 5. Prompt de imagem DETALHADO:
    - Descrição visual completa
-   - Paleta de cores sugerida: ${brandColors.length > 0 ? brandColors.join(', ') : 'moderna e vibrante'}
-   - Estilo: ${style}
-   - Aspect ratio: ${aspectRatio}
-   - Elementos de marca
-   - Sensação desejada
-   ${postType === 'story' ? '- Composição vertical (1080x1920)' : '- Composição quadrada ou 4:5 com espaço para texto'}
+    - Paleta de cores sugerida: ${brandColors.length > 0 ? brandColors.join(', ') : 'moderna e vibrante'}
+    - Estilo: ${style}
+    - Aspect ratio: ${aspectRatio}
+    - Elementos de marca${includeLogo && logoUrl ? ' (incluir espaço para logo no canto inferior direito)' : ''}
+    - Sensação desejada
+    ${postType === 'story' ? '- Composição vertical (1080x1920)' : '- Composição quadrada ou 4:5 com espaço para texto'}
 
 6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
 

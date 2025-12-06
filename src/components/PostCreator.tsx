@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, ImagePlus, Upload, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,6 +32,21 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [includeLogo, setIncludeLogo] = useState(true);
+
+  // Check for prefilled theme from calendar
+  useEffect(() => {
+    const prefillData = sessionStorage.getItem('prefillTheme');
+    if (prefillData) {
+      try {
+        const data = JSON.parse(prefillData);
+        if (data.theme) setTheme(data.theme + (data.description ? ` - ${data.description}` : ''));
+        sessionStorage.removeItem('prefillTheme');
+      } catch (e) {
+        console.error('Error parsing prefill data:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadCompanyProfile();
@@ -92,7 +108,9 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           targetAudience: companyProfile?.target_audience || "Público geral",
           keywords: companyProfile?.keywords || ["inovação", "qualidade", "profissionalismo"],
           maxHashtags: companyProfile?.max_hashtags || 10,
-          userId: user.id
+          userId: user.id,
+          includeLogo,
+          logoUrl: companyProfile?.logo_url
         }
       });
 
@@ -130,25 +148,25 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
   }
 
   return (
-    <Card className="p-6 shadow-smooth">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <Card className="p-4 md:p-6 shadow-smooth">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-display font-bold">Criar Publicação</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-xl md:text-2xl font-display font-bold">Criar Publicação</h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
               Descreva sua ideia e deixe a IA criar o conteúdo perfeito
             </p>
           </div>
           <Tabs value={postType} onValueChange={(v) => setPostType(v as "feed" | "story" | "reel")}>
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="feed">Feed</TabsTrigger>
-              <TabsTrigger value="story">Story</TabsTrigger>
-              <TabsTrigger value="reel">Reel</TabsTrigger>
+            <TabsList className="grid grid-cols-3 w-full md:w-auto">
+              <TabsTrigger value="feed" className="text-xs md:text-sm">Feed</TabsTrigger>
+              <TabsTrigger value="story" className="text-xs md:text-sm">Story</TabsTrigger>
+              <TabsTrigger value="reel" className="text-xs md:text-sm">Reel</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           <div className="space-y-4">
             <div>
               <Label htmlFor="objective">Objetivo da Campanha *</Label>
@@ -206,7 +224,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                       <Input
                         key={index}
                         type="color"
-                        className="h-10 w-20 cursor-pointer"
+                        className="h-10 w-14 md:w-20 cursor-pointer p-1"
                         value={color}
                         onChange={(e) => {
                           const newColors = [...brandColors];
@@ -217,6 +235,26 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                     ))}
                   </div>
                 </div>
+                
+                {companyProfile?.logo_url && (
+                  <div className="flex items-center gap-3 pt-2 border-t">
+                    <Checkbox
+                      id="includeLogo"
+                      checked={includeLogo}
+                      onCheckedChange={(checked) => setIncludeLogo(checked as boolean)}
+                    />
+                    <Label htmlFor="includeLogo" className="text-sm cursor-pointer">
+                      Incluir logo na arte
+                    </Label>
+                    {companyProfile.logo_url && (
+                      <img 
+                        src={companyProfile.logo_url} 
+                        alt="Logo" 
+                        className="h-8 w-8 object-contain rounded ml-auto"
+                      />
+                    )}
+                  </div>
+                )}
               </Card>
             </div>
 
