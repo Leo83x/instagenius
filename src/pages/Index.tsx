@@ -28,22 +28,22 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
       
-      <main className="container py-8 space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+      <main className="container py-4 md:py-8 space-y-4 md:space-y-8">
+        <div className="space-y-1 md:space-y-2">
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Dashboard</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Transforme suas ideias em posts profissionais para Instagram
           </p>
         </div>
 
         <StatsOverview />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="create">Criar Post</TabsTrigger>
-            <TabsTrigger value="preview">Visualizar</TabsTrigger>
-            <TabsTrigger value="schedule">Agenda</TabsTrigger>
-            <TabsTrigger value="saved">Salvos</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <TabsList className="grid w-full grid-cols-4 h-auto">
+            <TabsTrigger value="create" className="text-xs md:text-sm py-2">Criar Post</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs md:text-sm py-2">Visualizar</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm py-2">Agenda</TabsTrigger>
+            <TabsTrigger value="saved" className="text-xs md:text-sm py-2">Salvos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">

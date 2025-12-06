@@ -80,17 +80,17 @@ export function StatsOverview() {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
       {statsData.map((stat, index) => (
-        <Card key={index} className="p-6 shadow-smooth transition-smooth hover:shadow-glow">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="text-2xl font-display font-bold">{stat.value}</p>
+        <Card key={index} className="p-4 md:p-6 shadow-smooth transition-smooth hover:shadow-glow">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1 min-w-0 flex-1">
+              <p className="text-xs md:text-sm text-muted-foreground truncate">{stat.label}</p>
+              <p className="text-xl md:text-2xl font-display font-bold">{stat.value}</p>
               <p className="text-xs text-muted-foreground">{stat.change}</p>
             </div>
-            <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-              <stat.icon className="h-6 w-6 text-white" />
+            <div className={`h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center flex-shrink-0`}>
+              <stat.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
           </div>
         </Card>

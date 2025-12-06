@@ -4,15 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar as CalendarIcon, Plus, X, Check, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ThemeEvent {
   id: string;
   date: Date;
   theme: any;
+  completed?: boolean;
 }
 
 interface ThemeCalendarProps {
@@ -20,6 +23,7 @@ interface ThemeCalendarProps {
 }
 
 export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
+  const navigate = useNavigate();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<ThemeEvent[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,6 +47,27 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
   const removeEvent = (id: string) => {
     setEvents(events.filter(e => e.id !== id));
     toast.success("Tema removido do calendário");
+  };
+
+  const toggleCompleted = (id: string) => {
+    setEvents(events.map(e => 
+      e.id === id ? { ...e, completed: !e.completed } : e
+    ));
+    const event = events.find(e => e.id === id);
+    if (event && !event.completed) {
+      toast.success("Tema marcado como concluído!");
+    }
+  };
+
+  const createPostFromTheme = (theme: any) => {
+    // Navigate to home and store theme in sessionStorage for pre-filling
+    sessionStorage.setItem('prefillTheme', JSON.stringify({
+      theme: theme.theme_name,
+      description: theme.description,
+      hashtags: theme.suggested_hashtags
+    }));
+    navigate('/');
+    toast.info("Tema carregado no criador de posts!");
   };
 
   const getEventsForDate = (checkDate: Date) => {
@@ -92,18 +117,52 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
           <div className="space-y-2">
             {date && getEventsForDate(date).length > 0 ? (
               getEventsForDate(date).map((event) => (
-                <div key={event.id} className="p-3 bg-muted/50 rounded-lg flex items-start justify-between gap-2">
+                <div 
+                  key={event.id} 
+                  className={`p-3 rounded-lg flex items-start gap-3 ${
+                    event.completed ? 'bg-green-500/10 border border-green-500/30' : 'bg-muted/50'
+                  }`}
+                >
+                  <div className="pt-1">
+                    <Checkbox
+                      checked={event.completed}
+                      onCheckedChange={() => toggleCompleted(event.id)}
+                      className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate">{event.theme.theme_name}</h4>
+                    <h4 className={`font-medium truncate ${event.completed ? 'line-through text-muted-foreground' : ''}`}>
+                      {event.theme.theme_name}
+                    </h4>
                     <p className="text-sm text-muted-foreground line-clamp-2">{event.theme.description}</p>
-                    <Badge variant="outline" className={`mt-2 ${categoryColors[event.theme.category] || ""}`}>
-                      {event.theme.category}
-                    </Badge>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge variant="outline" className={categoryColors[event.theme.category] || ""}>
+                        {event.theme.category}
+                      </Badge>
+                      {event.completed && (
+                        <Badge className="bg-green-500/20 text-green-600 border-green-300">
+                          <Check className="h-3 w-3 mr-1" />
+                          Concluído
+                        </Badge>
+                      )}
+                    </div>
+                    {!event.completed && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 w-full"
+                        onClick={() => createPostFromTheme(event.theme)}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Criar Publicação
+                      </Button>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => removeEvent(event.id)}
+                    className="flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -132,7 +191,7 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">Selecione um Tema</label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {savedThemes.map((theme) => (
                   <div
                     key={theme.id}
@@ -143,12 +202,10 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">{theme.theme_name}</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{theme.description}</p>
-                      </div>
-                      <Badge variant="outline" className={categoryColors[theme.category] || ""}>
+                    <div className="flex flex-col gap-2">
+                      <h4 className="font-medium text-sm leading-tight">{theme.theme_name}</h4>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{theme.description}</p>
+                      <Badge variant="outline" className={`self-start text-xs ${categoryColors[theme.category] || ""}`}>
                         {theme.category}
                       </Badge>
                     </div>
