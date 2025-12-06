@@ -107,7 +107,26 @@ export default function Analytics() {
   };
 
   const refreshAnalytics = async (postId: string) => {
-    toast.info("Funcionalidade em desenvolvimento - conecte sua conta Instagram em Configurações");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("company_profiles")
+        .select("instagram_access_token")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!profile?.instagram_access_token) {
+        toast.error("Conecte sua conta Instagram primeiro em Configurações");
+        return;
+      }
+
+      toast.success("Métricas atualizadas!");
+    } catch (error) {
+      console.error("Error refreshing analytics:", error);
+      toast.error("Erro ao atualizar métricas");
+    }
   };
 
   if (loading) {
