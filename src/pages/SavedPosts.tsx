@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, Calendar, Download } from "lucide-react";
+import { Trash2, Calendar, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -178,19 +179,11 @@ export default function SavedPosts() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold mb-2">Posts Salvos</h1>
+    <div className="min-h-screen bg-gradient-subtle">
+      <Header />
+      <main className="container py-8 space-y-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-display font-bold">Posts Salvos</h1>
           <p className="text-muted-foreground">
             Gerencie todos os seus posts gerados
           </p>
@@ -268,7 +261,7 @@ export default function SavedPosts() {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

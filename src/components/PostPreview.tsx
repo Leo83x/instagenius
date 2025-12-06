@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,11 +51,32 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [companyName, setCompanyName] = useState("sua_empresa");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   
   // Estados para edição
   const [editedCaption, setEditedCaption] = useState("");
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedImageUrl, setEditedImageUrl] = useState("");
+
+  useEffect(() => {
+    const loadCompanyProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("company_profiles")
+        .select("company_name, logo_url, instagram_handle")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setCompanyName(data.instagram_handle || data.company_name || "sua_empresa");
+        setLogoUrl(data.logo_url);
+      }
+    };
+    loadCompanyProfile();
+  }, []);
 
   if (!variations || variations.length === 0) {
     return (
@@ -234,8 +255,12 @@ ${displayPost.rationale}
           <div className="space-y-4">
             <div className="bg-card border rounded-lg overflow-hidden">
               <div className="flex items-center gap-3 p-3 border-b">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary" />
-                <span className="font-semibold text-sm">sua_empresa</span>
+                {logoUrl ? (
+                  <img src={logoUrl} alt={companyName} className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary" />
+                )}
+                <span className="font-semibold text-sm">{companyName}</span>
               </div>
               
               <div className="bg-muted aspect-square flex items-center justify-center relative">
@@ -269,7 +294,7 @@ ${displayPost.rationale}
                 </div>
                 
                 <div className="text-sm">
-                  <span className="font-semibold">sua_empresa</span>{" "}
+                  <span className="font-semibold">{companyName}</span>{" "}
                   <span className="whitespace-pre-wrap">{displayPost.caption}</span>
                 </div>
               </div>

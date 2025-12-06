@@ -1,4 +1,4 @@
-import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Hash, Lightbulb, CreditCard, Menu, User, Image } from "lucide-react";
+import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Lightbulb, CreditCard, Menu, User, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +29,6 @@ export function Header() {
     { to: "/posts", label: "Posts", icon: BookmarkCheck },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/themes", label: "Temas", icon: Lightbulb },
-    { to: "/hashtags", label: "Hashtags", icon: Hash },
     { to: "/images", label: "Imagens", icon: Image },
   ];
 

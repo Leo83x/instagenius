@@ -9,7 +9,7 @@ import Settings from "./pages/Settings";
 import SavedPosts from "./pages/SavedPosts";
 import InstagramIntegration from "./pages/InstagramIntegration";
 import Analytics from "./pages/Analytics";
-import HashtagExplorer from "./pages/HashtagExplorer";
+
 import ThemeSuggestions from "./pages/ThemeSuggestions";
 import ImageLibrary from "./pages/ImageLibrary";
 import Subscription from "./pages/Subscription";
@@ -70,7 +70,7 @@ const App = () => {
             <Route path="/posts" element={<SavedPosts />} />
             <Route path="/instagram" element={<InstagramIntegration />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/hashtags" element={<HashtagExplorer />} />
+            
             <Route path="/themes" element={<ThemeSuggestions />} />
             <Route path="/images" element={<ImageLibrary />} />
             <Route path="/subscription" element={<Subscription />} />
