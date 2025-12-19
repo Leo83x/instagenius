@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Heart, 
-  MessageCircle, 
-  Send, 
+import {
+  Heart,
+  MessageCircle,
+  Send,
   Bookmark,
   Download,
   Calendar,
@@ -23,11 +23,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { composeLogoOnImage, composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
+import { TextOverlayEditor, type TextStyleConfig } from "./TextOverlayEditor";
 
 interface PostVariation {
   variant: string;
   caption: string;
   hashtags: string[];
+  headlineText?: string;  // NEW - AI-generated headline for text overlay
   imagePrompt: {
     description: string;
     colors: string[];
@@ -40,6 +43,10 @@ interface PostVariation {
   rationale: string;
   imageUrl?: string;
   imageError?: string;
+  textOverlay?: {  // NEW - metadata for client-side rendering
+    text: string;
+    position: 'top' | 'center' | 'bottom';
+  };
 }
 
 interface PostPreviewProps {
@@ -50,14 +57,18 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const [currentVariation, setCurrentVariation] = useState(0);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const [isApplyingText, setIsApplyingText] = useState(false);
+  const [showTextEditor, setShowTextEditor] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [companyName, setCompanyName] = useState("sua_empresa");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  
+
   // Estados para edição
   const [editedCaption, setEditedCaption] = useState("");
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedImageUrl, setEditedImageUrl] = useState("");
+  const [editedHeadlineText, setEditedHeadlineText] = useState("");
 
   useEffect(() => {
     const loadCompanyProfile = async () => {
@@ -102,6 +113,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     setEditedCaption(currentPost.caption);
     setEditedHashtags(currentPost.hashtags.join(" "));
     setEditedImageUrl(currentPost.imageUrl || "");
+    setEditedHeadlineText(currentPost.headlineText || "");
     setIsEditing(true);
   };
 
@@ -115,7 +127,8 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       ...currentPost,
       caption: editedCaption,
       hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
-      imageUrl: editedImageUrl || currentPost.imageUrl
+      imageUrl: editedImageUrl || currentPost.imageUrl,
+      headlineText: editedHeadlineText || currentPost.headlineText
     };
     setIsEditing(false);
     toast.success("Alterações salvas no preview!");
@@ -125,12 +138,13 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     ...currentPost,
     caption: editedCaption,
     hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
-    imageUrl: editedImageUrl || currentPost.imageUrl
+    imageUrl: editedImageUrl || currentPost.imageUrl,
+    headlineText: editedHeadlineText || currentPost.headlineText
   } : currentPost;
 
   const handleExport = async () => {
     if (!displayPost) return;
-    
+
     setExporting(true);
     try {
       const content = `
@@ -181,6 +195,96 @@ ${displayPost.rationale}
       toast.error("Erro ao exportar arquivos");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleApplyLogo = async () => {
+    if (!currentPost.imageUrl || !logoUrl) return;
+
+    setIsComposing(true);
+    toast.info("Aplicando logo na imagem...");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // 1. Compose logo
+      const composedDataUrl = await composeLogoOnImage(
+        currentPost.imageUrl,
+        logoUrl,
+        'bottom-right',
+        0.15 // 15% size
+      );
+
+      // 2. Upload new image
+      const newImageUrl = await uploadComposedImage(
+        composedDataUrl,
+        user.id,
+        supabase
+      );
+
+      // 3. Update current variation state locally
+      // Note: In a real app we might want to update the parent state or refetch
+      // For now we mutate the object in memory to reflect change immediately
+      currentPost.imageUrl = newImageUrl;
+
+      // Force re-render
+      setCurrentVariation(prev => prev); // This might not be enough if object ref is same
+
+      toast.success("Logo aplicada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao aplicar logo:", error);
+      toast.error("Erro ao aplicar logo na imagem");
+    } finally {
+      setIsComposing(false);
+    }
+  };
+
+  const handleApplyTextWithConfig = async (config: TextStyleConfig) => {
+    if (!currentPost.imageUrl) return;
+
+    setShowTextEditor(false);
+    setIsApplyingText(true);
+    toast.info("Aplicando texto na imagem...");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // 1. Compose text on image with custom config (including edited text)
+      const composedDataUrl = await composeTextOnImage(
+        currentPost.imageUrl,
+        config.text, // Use edited text from config
+        config.position,
+        {
+          color: config.color,
+          strokeColor: config.strokeColor,
+          fontFamily: config.fontFamily,
+          fontSize: config.fontSize
+        }
+      );
+
+      // 2. Upload new image
+      const newImageUrl = await uploadComposedImage(
+        composedDataUrl,
+        user.id,
+        supabase
+      );
+
+      // 3. Update current variation state locally
+      currentPost.imageUrl = newImageUrl;
+      // Mark that text has been applied
+      currentPost.textOverlay = undefined;
+
+      // Force re-render
+      setCurrentVariation(prev => prev);
+
+      toast.success("Texto aplicado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao aplicar texto:", error);
+      toast.error("Erro ao aplicar texto na imagem");
+    } finally {
+      setIsApplyingText(false);
     }
   };
 
@@ -262,11 +366,11 @@ ${displayPost.rationale}
                 )}
                 <span className="font-semibold text-sm">{companyName}</span>
               </div>
-              
+
               <div className="bg-muted aspect-square flex items-center justify-center relative">
                 {displayPost.imageUrl ? (
-                  <img 
-                    src={displayPost.imageUrl} 
+                  <img
+                    src={displayPost.imageUrl}
                     alt={displayPost.altText}
                     className="w-full h-full object-cover"
                   />
@@ -292,12 +396,19 @@ ${displayPost.rationale}
                   </div>
                   <Bookmark className="h-6 w-6 hover:text-primary cursor-pointer" />
                 </div>
-                
+
                 <div className="text-sm">
                   <span className="font-semibold">{companyName}</span>{" "}
                   <span className="whitespace-pre-wrap">{displayPost.caption}</span>
                 </div>
               </div>
+
+              {/* Logo Overlay - Visual Fallback */}
+              {logoUrl && companyName && (
+                <div className="absolute bottom-4 right-4 w-[15%] max-w-[80px] z-10 pointer-events-none drop-shadow-md">
+                  {/* Overlay omitted as per new logic, button is preferred */}
+                </div>
+              )}
             </div>
           </div>
 
@@ -355,6 +466,19 @@ ${displayPost.rationale}
                     className="mt-1"
                   />
                 </div>
+                {displayPost.headlineText && (
+                  <div>
+                    <Label htmlFor="headlineText">Texto na Imagem</Label>
+                    <Input
+                      id="headlineText"
+                      value={editedHeadlineText}
+                      onChange={(e) => setEditedHeadlineText(e.target.value)}
+                      placeholder="Máximo 6 palavras"
+                      maxLength={50}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -397,42 +521,123 @@ ${displayPost.rationale}
                     ))}
                   </div>
                 </div>
+
+                {displayPost.headlineText && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="font-semibold mb-2">Texto na Imagem</h4>
+                      <Badge variant="secondary" className="text-sm">
+                        {displayPost.headlineText}
+                      </Badge>
+                      {displayPost.textOverlay && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Posição: {displayPost.textOverlay.position === 'top' ? 'Topo' : displayPost.textOverlay.position === 'center' ? 'Centro' : 'Rodapé'}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
               </>
             )}
 
             <Separator />
 
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              {/* Botão de Editar Texto */}
+              {displayPost.headlineText && displayPost.textOverlay && displayPost.imageUrl && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowTextEditor(true)}
+                  disabled={isApplyingText}
+                  className="flex-1 md:flex-none"
+                >
+                  {isApplyingText ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Aplicando...
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Editar Texto
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {/* Botão de Aplicar Logo (Manual) */}
+              {logoUrl && !displayPost.imageUrl?.includes('composed') && (
+                <Button
+                  variant="secondary"
+                  onClick={handleApplyLogo}
+                  disabled={isComposing}
+                  className="flex-1 md:flex-none"
+                >
+                  {isComposing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Aplicando...
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="mr-2 h-4 w-4" />
+                      Aplicar Logo
+                    </>
+                  )}
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
                 onClick={handleExport}
                 disabled={exporting}
+                className="flex-1 md:flex-none"
               >
                 {exporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exportando...
+                  </>
                 ) : (
-                  <Download className="h-4 w-4 mr-2" />
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar
+                  </>
                 )}
-                Exportar
               </Button>
-              <Button 
-                variant="default" 
-                size="sm"
+              <Button
                 onClick={handleSaveToDatabase}
                 disabled={saving}
+                className="flex-1 md:flex-none btn-shimmer"
               >
                 {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
                 ) : (
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Salvar Post
+                  </>
                 )}
-                Salvar Post
               </Button>
             </div>
           </div>
         </div>
       </Card>
+
+      {/* Text Overlay Editor Modal */}
+      {showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
+        <TextOverlayEditor
+          imageUrl={displayPost.imageUrl}
+          text={displayPost.headlineText}
+          initialPosition={displayPost.textOverlay?.position || 'center'}
+          onApply={handleApplyTextWithConfig}
+          onCancel={() => setShowTextEditor(false)}
+        />
+      )}
     </div>
   );
 }

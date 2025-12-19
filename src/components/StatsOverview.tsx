@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, FileText, Clock, TrendingUp, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,6 +11,7 @@ export function StatsOverview() {
     aiCredits: 0,
     aiCreditsTotal: 100,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadStats();
@@ -45,6 +47,8 @@ export function StatsOverview() {
       });
     } catch (error) {
       console.error("Error loading stats:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,17 +83,40 @@ export function StatsOverview() {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <Card key={index} className="p-4 md:p-6 animate-pulse">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-10 w-10 md:h-12 md:w-12 rounded-lg" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
       {statsData.map((stat, index) => (
-        <Card key={index} className="p-4 md:p-6 shadow-smooth transition-smooth hover:shadow-glow">
+        <Card
+          key={index}
+          className="p-4 md:p-6 shadow-smooth transition-all duration-300 hover:shadow-glow hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+          style={{ animationDelay: `${index * 100}ms` }}
+        >
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1 min-w-0 flex-1">
               <p className="text-xs md:text-sm text-muted-foreground truncate">{stat.label}</p>
               <p className="text-xl md:text-2xl font-display font-bold">{stat.value}</p>
               <p className="text-xs text-muted-foreground">{stat.change}</p>
             </div>
-            <div className={`h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center flex-shrink-0`}>
+            <div className={`h-10 w-10 md:h-12 md:w-12 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center flex-shrink-0 transition-transform duration-300 hover:rotate-12`}>
               <stat.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
           </div>

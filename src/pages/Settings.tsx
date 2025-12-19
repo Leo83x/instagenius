@@ -15,7 +15,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   const [companyName, setCompanyName] = useState("");
   const [category, setCategory] = useState("");
   const [bio, setBio] = useState("");
@@ -105,7 +105,8 @@ export default function Settings() {
         .from("company-logos")
         .getPublicUrl(fileName);
 
-      setLogoUrl(urlData.publicUrl);
+      const publicUrl = `${urlData.publicUrl}?t=${new Date().getTime()}`;
+      setLogoUrl(publicUrl);
       toast.success("Logo enviado com sucesso!");
     } catch (error: any) {
       console.error("Error uploading logo:", error);

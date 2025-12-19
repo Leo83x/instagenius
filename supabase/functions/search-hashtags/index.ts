@@ -46,10 +46,8 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+    // Gemini API Key Logic
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCW0xygwfkFwPxQHlHxT5ikqopqxi63Do8';
 
     // Use AI to suggest relevant hashtags based on the business profile
     const systemPrompt = `Você é um especialista em marketing digital e Instagram Business.
@@ -72,7 +70,7 @@ REGRAS:
 
 4. FOQUE em hashtags que o público-alvo realmente busca
 
-RETORNE UM JSON VÁLIDO com este formato:
+RETORNE APENAS UM JSON VÁLIDO NO SEGUINTE FORMATO:
 {
   "hashtags": [
     {
@@ -82,11 +80,7 @@ RETORNE UM JSON VÁLIDO com este formato:
       "estimatedReach": 150000,
       "description": "Popular entre o público-alvo"
     }
-  ],
-  "metadata": {
-    "totalHashtags": 20,
-    "searchTerms": ["termo1", "termo2"]
-  }
+  ]
 }`;
 
     const userPrompt = `
@@ -98,49 +92,54 @@ Palavras-chave para busca: ${keywords || 'marketing digital'}
 Sugira 20 hashtags estratégicas para essa empresa usar no Instagram.
 `;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const geminiPayload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4000,
+        responseMimeType: "application/json"
+      }
+    };
+
+    console.log('Calling Google Gemini API (search-hashtags)...');
+
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 3000,
-      }),
+      body: JSON.stringify(geminiPayload),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      console.error('Gemini API error:', aiResponse.status, errorText);
+      throw new Error(`Gemini API error: ${aiResponse.status} ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
-    
+    const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
     if (!content) {
-      throw new Error('AI response não contém conteúdo válido');
+      throw new Error('Gemini response não contém conteúdo válido');
     }
 
-    console.log('AI hashtag response received');
-
-    // Parse JSON response
     let result;
     try {
+      // Extrair JSON do markdown se necessário
       const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
       result = JSON.parse(jsonStr);
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Falha ao processar resposta da IA',
-        details: content 
+        details: content
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -148,25 +147,27 @@ Sugira 20 hashtags estratégicas para essa empresa usar no Instagram.
     }
 
     // Save to database for future reference
-    const hashtagsToSave = result.hashtags.map((h: any) => ({
-      user_id: user.id,
-      hashtag: h.tag,
-      category: h.category,
-      score: h.score,
-      usage_count: 0,
-    }));
+    if (result.hashtags && Array.isArray(result.hashtags)) {
+      const hashtagsToSave = result.hashtags.map((h: any) => ({
+        user_id: user.id,
+        hashtag: h.tag,
+        category: h.category,
+        score: h.score,
+        usage_count: 0,
+      }));
 
-    // Upsert hashtags (update if exists, insert if not)
-    const { error: insertError } = await supabase
-      .from('hashtag_trends')
-      .upsert(hashtagsToSave, { 
-        onConflict: 'user_id,hashtag',
-        ignoreDuplicates: false 
-      });
+      // Upsert hashtags (update if exists, insert if not)
+      const { error: insertError } = await supabase
+        .from('hashtag_trends')
+        .upsert(hashtagsToSave, {
+          onConflict: 'user_id,hashtag',
+          ignoreDuplicates: false
+        });
 
-    if (insertError) {
-      console.error('Error saving hashtags:', insertError);
-      // Don't fail the request, just log it
+      if (insertError) {
+        console.error('Error saving hashtags:', insertError);
+        // Don't fail the request, just log it
+      }
     }
 
     return new Response(JSON.stringify(result), {
@@ -175,7 +176,7 @@ Sugira 20 hashtags estratégicas para essa empresa usar no Instagram.
 
   } catch (error: any) {
     console.error('Error in search-hashtags function:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: error.message || 'Erro ao buscar hashtags',
       details: error.toString()
     }), {

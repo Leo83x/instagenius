@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NavLink } from "./NavLink";
+import { ThemeToggle } from "./ThemeToggle";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -51,7 +52,7 @@ export function Header() {
               <p className="text-xs text-muted-foreground">Gerador de Conteúdo IA</p>
             </div>
           </div>
-          
+
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6 flex-1">
             {mainNavItems.map((item) => (
@@ -61,8 +62,9 @@ export function Header() {
             ))}
           </nav>
         </div>
-        
+
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {/* Account Menu Dropdown - Desktop */}
           <div className="hidden lg:block">
             <DropdownMenu>
@@ -89,7 +91,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          
+
           {/* Mobile Menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -108,7 +110,7 @@ export function Header() {
                     <p className="text-xs text-muted-foreground">Menu</p>
                   </div>
                 </div>
-                
+
                 <nav className="flex flex-col gap-2">
                   {[...mainNavItems, ...accountMenuItems].map((item) => {
                     const Icon = item.icon;
@@ -130,8 +132,8 @@ export function Header() {
                 </nav>
 
                 <div className="pt-4 border-t mt-auto">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={handleSignOut}
                   >

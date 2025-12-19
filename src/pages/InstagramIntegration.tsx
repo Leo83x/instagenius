@@ -45,7 +45,7 @@ export default function InstagramIntegration() {
       setLoading(true);
       try {
         const redirectUri = `${window.location.origin}${window.location.pathname}`;
-        
+
         const { data, error } = await supabase.functions.invoke(
           "facebook-oauth-callback",
           {
@@ -90,7 +90,7 @@ export default function InstagramIntegration() {
         setIsConnected(true);
         setInstagramUserId(data.instagram_user_id);
         setTokenExpiresAt(data.token_expires_at);
-        
+
         // Fetch username from Instagram API
         try {
           const response = await fetch(
@@ -118,7 +118,7 @@ export default function InstagramIntegration() {
 
     const redirectUri = `${window.location.origin}${window.location.pathname}`;
     const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement";
-    
+
     const oauthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=${scope}&response_type=code`;
@@ -405,7 +405,7 @@ export default function InstagramIntegration() {
 
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  💡 <strong>Dica:</strong> Renove seu token a cada 60 dias para manter a conexão ativa. 
+                  💡 <strong>Dica:</strong> Renove seu token a cada 60 dias para manter a conexão ativa.
                   O sistema irá alertá-lo quando estiver próximo do vencimento.
                 </p>
               </div>
@@ -451,8 +451,8 @@ export default function InstagramIntegration() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-sm">
-                      <strong>Importante:</strong> Sua conta do Instagram deve estar configurada como Instagram Business 
-                      e conectada a uma Página do Facebook. Se ainda não fez isso, configure em: 
+                      <strong>Importante:</strong> Sua conta do Instagram deve estar configurada como Instagram Business
+                      e conectada a uma Página do Facebook. Se ainda não fez isso, configure em:
                       Instagram → Configurações → Conta → Mudar para conta profissional.
                     </AlertDescription>
                   </Alert>
@@ -460,7 +460,7 @@ export default function InstagramIntegration() {
                   <Button
                     onClick={startOAuthFlow}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600"
+                    className="w-full bg-[#1877F2] hover:bg-[#166fe5] text-white"
                     size="lg"
                   >
                     {loading ? (
@@ -491,78 +491,78 @@ export default function InstagramIntegration() {
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Atenção:</strong> O método manual é mais complexo e não recomendado. 
+                      <strong>Atenção:</strong> O método manual é mais complexo e não recomendado.
                       Use apenas se tiver experiência técnica com APIs do Facebook.
                     </AlertDescription>
                   </Alert>
 
                   <div className="space-y-4">
                     <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
-                  <p className="text-sm font-medium">Como obter suas credenciais do Instagram Graph API:</p>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="font-semibold text-sm mb-2">📱 Passo 1: Preparar sua conta Instagram</p>
-                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside ml-2">
-                        <li>Converta sua conta para Instagram Business ou Creator</li>
-                        <li>Conecte-a a uma Página do Facebook no Instagram → Configurações → Conta → Mudar para conta profissional</li>
-                      </ul>
+                      <p className="text-sm font-medium">Como obter suas credenciais do Instagram Graph API:</p>
+
+                      <div className="space-y-4">
+                        <div>
+                          <p className="font-semibold text-sm mb-2">📱 Passo 1: Preparar sua conta Instagram</p>
+                          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside ml-2">
+                            <li>Converta sua conta para Instagram Business ou Creator</li>
+                            <li>Conecte-a a uma Página do Facebook no Instagram → Configurações → Conta → Mudar para conta profissional</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-sm mb-2">🔑 Passo 2: Criar App no Meta for Developers</p>
+                          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
+                            <li>Acesse <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developers.facebook.com/apps</a></li>
+                            <li>Clique em "Criar App" → escolha tipo "Business"</li>
+                            <li>Em "Adicionar produtos", adicione "Instagram Graph API"</li>
+                            <li>Vá em "Ferramentas" (Tools) → "Ferramenta de Token de Acesso" (Access Token Tool)</li>
+                            <li>Selecione sua Página conectada ao Instagram</li>
+                            <li>Marque as permissões: <code className="text-xs bg-muted px-1 rounded">instagram_basic</code>, <code className="text-xs bg-muted px-1 rounded">instagram_content_publish</code>, <code className="text-xs bg-muted px-1 rounded">pages_show_list</code></li>
+                            <li>Clique em "Gerar Token" - copie o token gerado (começa com EAA)</li>
+                          </ol>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-sm mb-2">🆔 Passo 3: Obter Instagram Business Account ID</p>
+                          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
+                            <li>Acesse <a href="https://business.facebook.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">business.facebook.com/settings</a></li>
+                            <li>No menu lateral esquerdo, clique em "Contas" → "Contas do Instagram"</li>
+                            <li>Clique na sua conta Instagram desejada (ex: @convertamaisoficial)</li>
+                            <li>Veja a <strong>URL do navegador</strong>. Ela será algo como:<br /><code className="text-xs bg-muted px-1 py-0.5 rounded block mt-1">business.facebook.com/latest/settings/instagram_account?business_id=...&selected_asset_id=<strong>17841477061462489</strong></code></li>
+                            <li>Copie apenas os <strong>números longos</strong> após <code className="text-xs">selected_asset_id=</code> (geralmente 17 dígitos)</li>
+                            <li>No exemplo acima, o ID correto seria: <code className="text-xs bg-primary/20 px-1 py-0.5 rounded font-bold">17841477061462489</code></li>
+                          </ol>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <strong>⚠️ Importante:</strong> O Instagram Business Account ID é diferente do seu @username. É um número longo que você encontra no Facebook Business Manager. Certifique-se de que sua conta Instagram está conectada a uma Página do Facebook antes de começar.
+                        </p>
+                      </div>
                     </div>
 
                     <div>
-                      <p className="font-semibold text-sm mb-2">🔑 Passo 2: Criar App no Meta for Developers</p>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
-                        <li>Acesse <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developers.facebook.com/apps</a></li>
-                        <li>Clique em "Criar App" → escolha tipo "Business"</li>
-                        <li>Em "Adicionar produtos", adicione "Instagram Graph API"</li>
-                        <li>Vá em "Ferramentas" (Tools) → "Ferramenta de Token de Acesso" (Access Token Tool)</li>
-                        <li>Selecione sua Página conectada ao Instagram</li>
-                        <li>Marque as permissões: <code className="text-xs bg-muted px-1 rounded">instagram_basic</code>, <code className="text-xs bg-muted px-1 rounded">instagram_content_publish</code>, <code className="text-xs bg-muted px-1 rounded">pages_show_list</code></li>
-                        <li>Clique em "Gerar Token" - copie o token gerado (começa com EAA)</li>
-                      </ol>
+                      <Label htmlFor="accessToken">Access Token *</Label>
+                      <Input
+                        id="accessToken"
+                        type="password"
+                        value={accessToken}
+                        onChange={(e) => setAccessToken(e.target.value)}
+                        placeholder="Cole seu access token aqui"
+                      />
                     </div>
 
                     <div>
-                      <p className="font-semibold text-sm mb-2">🆔 Passo 3: Obter Instagram Business Account ID</p>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
-                        <li>Acesse <a href="https://business.facebook.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">business.facebook.com/settings</a></li>
-                        <li>No menu lateral esquerdo, clique em "Contas" → "Contas do Instagram"</li>
-                        <li>Clique na sua conta Instagram desejada (ex: @convertamaisoficial)</li>
-                        <li>Veja a <strong>URL do navegador</strong>. Ela será algo como:<br/><code className="text-xs bg-muted px-1 py-0.5 rounded block mt-1">business.facebook.com/latest/settings/instagram_account?business_id=...&selected_asset_id=<strong>17841477061462489</strong></code></li>
-                        <li>Copie apenas os <strong>números longos</strong> após <code className="text-xs">selected_asset_id=</code> (geralmente 17 dígitos)</li>
-                        <li>No exemplo acima, o ID correto seria: <code className="text-xs bg-primary/20 px-1 py-0.5 rounded font-bold">17841477061462489</code></li>
-                      </ol>
+                      <Label htmlFor="userId">Instagram User ID *</Label>
+                      <Input
+                        id="userId"
+                        value={instagramUserId}
+                        onChange={(e) => setInstagramUserId(e.target.value)}
+                        placeholder="Cole seu user ID aqui"
+                      />
                     </div>
                   </div>
-
-                  <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                      <strong>⚠️ Importante:</strong> O Instagram Business Account ID é diferente do seu @username. É um número longo que você encontra no Facebook Business Manager. Certifique-se de que sua conta Instagram está conectada a uma Página do Facebook antes de começar.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="accessToken">Access Token *</Label>
-                  <Input
-                    id="accessToken"
-                    type="password"
-                    value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
-                    placeholder="Cole seu access token aqui"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="userId">Instagram User ID *</Label>
-                  <Input
-                    id="userId"
-                    value={instagramUserId}
-                    onChange={(e) => setInstagramUserId(e.target.value)}
-                    placeholder="Cole seu user ID aqui"
-                  />
-                </div>
-              </div>
 
                   <div className="flex gap-3">
                     <Button

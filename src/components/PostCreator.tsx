@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -16,6 +16,8 @@ import { Sparkles, ImagePlus, Upload, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PreviewAlert } from "./PreviewAlert";
+import { LivePreview } from "./LivePreview";
 
 interface PostCreatorProps {
   onPostGenerated?: (variations: any) => void;
@@ -33,6 +35,9 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
   const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [includeLogo, setIncludeLogo] = useState(true);
+  const [includeTextOverlay, setIncludeTextOverlay] = useState(false);
+  const [suggestedText, setSuggestedText] = useState("");
+  const [textPosition, setTextPosition] = useState<"top" | "center" | "bottom">("center");
 
   // Check for prefilled theme from calendar
   useEffect(() => {
@@ -87,7 +92,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
     }
 
     setIsGenerating(true);
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -110,7 +115,10 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           maxHashtags: companyProfile?.max_hashtags || 10,
           userId: user.id,
           includeLogo,
-          logoUrl: companyProfile?.logo_url
+          logoUrl: companyProfile?.logo_url,
+          includeTextOverlay,
+          suggestedText: suggestedText.trim() || undefined,
+          textPosition
         }
       });
 
@@ -124,7 +132,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
       }
 
       toast.success("Posts gerados com sucesso!");
-      
+
       if (onPostGenerated && data.variations) {
         onPostGenerated(data.variations);
       }
@@ -165,6 +173,8 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             </TabsList>
           </Tabs>
         </div>
+
+        <PreviewAlert show={!!theme} />
 
         <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           <div className="space-y-4">
@@ -235,7 +245,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                     ))}
                   </div>
                 </div>
-                
+
                 {companyProfile?.logo_url && (
                   <div className="flex items-center gap-3 pt-2 border-t">
                     <Checkbox
@@ -247,12 +257,59 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                       Incluir logo na arte
                     </Label>
                     {companyProfile.logo_url && (
-                      <img 
-                        src={companyProfile.logo_url} 
-                        alt="Logo" 
+                      <img
+                        src={companyProfile.logo_url}
+                        alt="Logo"
                         className="h-8 w-8 object-contain rounded ml-auto"
                       />
                     )}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3 pt-2 border-t">
+                  <Checkbox
+                    id="includeTextOverlay"
+                    checked={includeTextOverlay}
+                    onCheckedChange={(checked) => setIncludeTextOverlay(checked as boolean)}
+                  />
+                  <Label htmlFor="includeTextOverlay" className="text-sm cursor-pointer">
+                    Incluir texto na imagem
+                  </Label>
+                </div>
+
+                {includeTextOverlay && (
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <Label htmlFor="suggestedText" className="text-xs">
+                        Texto sugerido (opcional)
+                      </Label>
+                      <Input
+                        id="suggestedText"
+                        placeholder="Ex: Transforme Seu Negócio Hoje"
+                        value={suggestedText}
+                        onChange={(e) => setSuggestedText(e.target.value)}
+                        maxLength={50}
+                        className="mt-1 text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Deixe vazio para a IA gerar automaticamente
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="textPosition" className="text-xs">
+                        Posição do texto
+                      </Label>
+                      <Select value={textPosition} onValueChange={(v) => setTextPosition(v as "top" | "center" | "bottom")}>
+                        <SelectTrigger id="textPosition" className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top">Topo</SelectItem>
+                          <SelectItem value="center">Centro</SelectItem>
+                          <SelectItem value="bottom">Rodapé</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
               </Card>
@@ -287,7 +344,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button 
+          <Button
             variant="outline"
             onClick={() => {
               setObjective("");
@@ -297,8 +354,8 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           >
             Limpar
           </Button>
-          <Button 
-            variant="gradient" 
+          <Button
+            variant="gradient"
             size="lg"
             onClick={handleGenerate}
             disabled={isGenerating}
@@ -317,6 +374,19 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             )}
           </Button>
         </div>
+
+        {/* Preview em Tempo Real */}
+        {theme && (
+          <div className="mt-6">
+            <LivePreview
+              caption={theme}
+              hashtags={cta ? [cta] : []}
+              companyName={companyProfile?.company_name || "Sua Empresa"}
+              companyLogo={companyProfile?.logo_url}
+              postType={postType}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
