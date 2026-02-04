@@ -59,25 +59,14 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
 
   const loadCompanyProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("company_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Error loading profile:", error);
-        return;
-      }
-
-      if (data) {
-        setCompanyProfile(data);
-        setTone(data.default_tone || "professional");
-        setBrandColors(data.brand_colors || ["#8b5cf6", "#ec4899", "#f59e0b"]);
-      }
+      // Demo Mode: Skip real profile load
+      setCompanyProfile({
+        company_name: "Demo Studio",
+        default_tone: "professional",
+        brand_colors: ["#8b5cf6", "#ec4899", "#f59e0b"]
+      });
+      setTone("professional");
+      setBrandColors(["#8b5cf6", "#ec4899", "#f59e0b"]);
     } catch (error) {
       console.error("Error loading company profile:", error);
     } finally {
@@ -87,16 +76,71 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
 
   const handleGenerate = async () => {
     if (!theme || !objective) {
-      toast.error("Preencha o tema e objetivo do post");
+      toast.error("Please fill in the theme and campaign objective");
       return;
     }
 
     setIsGenerating(true);
 
     try {
+      // Demo Mode: Mock generation
+      setTimeout(() => {
+        const mockVariations = [
+          {
+            variant: "A",
+            caption: `🚀 ${theme} \n\nLooking for the best solution? We're here to help! \n\n#innovation #quality #business`,
+            hashtags: ["#innovation", "#quality", "#business"],
+            headlineText: "Transform Your Business",
+            imagePrompt: {
+              description: "Professional business environment",
+              colors: brandColors,
+              style: style,
+              aspectRatio: "1:1",
+              elements: [],
+              mood: tone
+            },
+            altText: "Business office scene",
+            rationale: "Focuses on professional appeal",
+            imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
+            textOverlay: {
+              text: "Transform Your Business",
+              position: textPosition
+            }
+          },
+          {
+            variant: "B",
+            caption: `✨ ${theme} \n\nUnlock your potential with our premium services. \n\n#growth #success #premium`,
+            hashtags: ["#growth", "#success", "#premium"],
+            headlineText: "Achieve More",
+            imagePrompt: {
+              description: "Abstract representation of growth",
+              colors: brandColors,
+              style: style,
+              aspectRatio: "1:1",
+              elements: [],
+              mood: tone
+            },
+            altText: "Abstract growth visualization",
+            rationale: "Focuses on aspirational growth",
+            imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80",
+            textOverlay: {
+              text: "Achieve More",
+              position: textPosition
+            }
+          }
+        ];
+
+        toast.success("Posts generated successfully!");
+        if (onPostGenerated) {
+          onPostGenerated(mockVariations);
+        }
+        setIsGenerating(false);
+      }, 2000);
+
+      /*
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Você precisa estar logado");
+        toast.error("You need to be logged in");
         return;
       }
 
@@ -109,9 +153,9 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           cta,
           postType,
           brandColors: companyProfile?.brand_colors || brandColors,
-          companyName: companyProfile?.company_name || "Sua Empresa",
-          targetAudience: companyProfile?.target_audience || "Público geral",
-          keywords: companyProfile?.keywords || ["inovação", "qualidade", "profissionalismo"],
+          companyName: companyProfile?.company_name || "Your Company",
+          targetAudience: companyProfile?.target_audience || "General Audience",
+          keywords: companyProfile?.keywords || ["innovation", "quality", "professionalism"],
           maxHashtags: companyProfile?.max_hashtags || 10,
           userId: user.id,
           includeLogo,
@@ -131,16 +175,16 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         throw new Error(data.error);
       }
 
-      toast.success("Posts gerados com sucesso!");
+      toast.success("Posts generated successfully!");
 
       if (onPostGenerated && data.variations) {
         onPostGenerated(data.variations);
       }
+      */
 
     } catch (error: any) {
       console.error('Error generating post:', error);
-      toast.error(error.message || "Erro ao gerar post. Tente novamente.");
-    } finally {
+      toast.error(error.message || "Error generating post. Please try again.");
       setIsGenerating(false);
     }
   };
@@ -160,9 +204,9 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-xl md:text-2xl font-display font-bold">Criar Publicação</h2>
+            <h2 className="text-xl md:text-2xl font-display font-bold">Create Post</h2>
             <p className="text-xs md:text-sm text-muted-foreground">
-              Descreva sua ideia e deixe a IA criar o conteúdo perfeito
+              Describe your idea and let AI create the perfect content
             </p>
           </div>
           <Tabs value={postType} onValueChange={(v) => setPostType(v as "feed" | "story" | "reel")}>
@@ -179,26 +223,26 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="objective">Objetivo da Campanha *</Label>
+              <Label htmlFor="objective">Campaign Objective *</Label>
               <Select value={objective} onValueChange={setObjective}>
                 <SelectTrigger id="objective">
-                  <SelectValue placeholder="Selecione o objetivo" />
+                  <SelectValue placeholder="Select objective" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="conversion">Conversão / Vendas</SelectItem>
-                  <SelectItem value="traffic">Tráfego para Site</SelectItem>
-                  <SelectItem value="awareness">Reconhecimento de Marca</SelectItem>
-                  <SelectItem value="engagement">Engajamento</SelectItem>
-                  <SelectItem value="leads">Captação de Leads</SelectItem>
+                  <SelectItem value="conversion">Conversion / Sales</SelectItem>
+                  <SelectItem value="traffic">Website Traffic</SelectItem>
+                  <SelectItem value="awareness">Brand Awareness</SelectItem>
+                  <SelectItem value="engagement">Engagement</SelectItem>
+                  <SelectItem value="leads">Lead Generation</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="theme">Tema / Descrição da Publicação *</Label>
+              <Label htmlFor="theme">Post Theme / Description *</Label>
               <Textarea
                 id="theme"
-                placeholder="Ex: Lançamento de novo produto, promoção de verão, dicas de uso..."
+                placeholder="Ex: New product launch, summer sale, usage tips..."
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
                 rows={4}
@@ -207,17 +251,17 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             </div>
 
             <div>
-              <Label htmlFor="tone">Tom de Voz</Label>
+              <Label htmlFor="tone">Tone of Voice</Label>
               <Select value={tone} onValueChange={setTone}>
                 <SelectTrigger id="tone">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="professional">Profissional</SelectItem>
-                  <SelectItem value="casual">Casual / Amigável</SelectItem>
-                  <SelectItem value="emotional">Emocional</SelectItem>
-                  <SelectItem value="humorous">Bem-humorado</SelectItem>
-                  <SelectItem value="educational">Educativo</SelectItem>
+                  <SelectItem value="professional">Professional</SelectItem>
+                  <SelectItem value="casual">Casual / Friendly</SelectItem>
+                  <SelectItem value="emotional">Emotional</SelectItem>
+                  <SelectItem value="humorous">Humorous</SelectItem>
+                  <SelectItem value="educational">Educational</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -225,10 +269,10 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
 
           <div className="space-y-4">
             <div>
-              <Label>Identidade Visual</Label>
+              <Label>Visual Identity</Label>
               <Card className="p-4 space-y-3 bg-muted/30">
                 <div>
-                  <Label htmlFor="colors" className="text-xs">Cores da Marca</Label>
+                  <Label htmlFor="colors" className="text-xs">Brand Colors</Label>
                   <div className="flex gap-2 mt-2">
                     {brandColors.map((color, index) => (
                       <Input
@@ -254,7 +298,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                       onCheckedChange={(checked) => setIncludeLogo(checked as boolean)}
                     />
                     <Label htmlFor="includeLogo" className="text-sm cursor-pointer">
-                      Incluir logo na arte
+                      Include logo in artwork
                     </Label>
                     {companyProfile.logo_url && (
                       <img
@@ -273,7 +317,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                     onCheckedChange={(checked) => setIncludeTextOverlay(checked as boolean)}
                   />
                   <Label htmlFor="includeTextOverlay" className="text-sm cursor-pointer">
-                    Incluir texto na imagem
+                    Include text overlay
                   </Label>
                 </div>
 
@@ -281,32 +325,32 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                   <div className="space-y-3 pt-2">
                     <div>
                       <Label htmlFor="suggestedText" className="text-xs">
-                        Texto sugerido (opcional)
+                        Suggested text (optional)
                       </Label>
                       <Input
                         id="suggestedText"
-                        placeholder="Ex: Transforme Seu Negócio Hoje"
+                        placeholder="Ex: Transform Your Business Today"
                         value={suggestedText}
                         onChange={(e) => setSuggestedText(e.target.value)}
                         maxLength={50}
                         className="mt-1 text-sm"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Deixe vazio para a IA gerar automaticamente
+                        Leave empty for AI to generate automatically
                       </p>
                     </div>
                     <div>
                       <Label htmlFor="textPosition" className="text-xs">
-                        Posição do texto
+                        Text position
                       </Label>
                       <Select value={textPosition} onValueChange={(v) => setTextPosition(v as "top" | "center" | "bottom")}>
                         <SelectTrigger id="textPosition" className="mt-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="top">Topo</SelectItem>
-                          <SelectItem value="center">Centro</SelectItem>
-                          <SelectItem value="bottom">Rodapé</SelectItem>
+                          <SelectItem value="top">Top</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="bottom">Bottom</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -316,26 +360,26 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             </div>
 
             <div>
-              <Label htmlFor="style">Estilo de Imagem</Label>
+              <Label htmlFor="style">Image Style</Label>
               <Select value={style} onValueChange={setStyle}>
                 <SelectTrigger id="style">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="photography">Fotografia</SelectItem>
-                  <SelectItem value="illustration">Ilustração</SelectItem>
-                  <SelectItem value="3d">3D / Renderizado</SelectItem>
+                  <SelectItem value="photography">Photography</SelectItem>
+                  <SelectItem value="illustration">Illustration</SelectItem>
+                  <SelectItem value="3d">3D / Rendered</SelectItem>
                   <SelectItem value="flat">Flat Design</SelectItem>
-                  <SelectItem value="abstract">Abstrato</SelectItem>
+                  <SelectItem value="abstract">Abstract</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="cta">Call-to-Action (Opcional)</Label>
+              <Label htmlFor="cta">Call-to-Action (Optional)</Label>
               <Input
                 id="cta"
-                placeholder="Ex: Acesse o link na bio, Saiba mais, Compre agora"
+                placeholder="Ex: Check link in bio, Learn more, Shop now"
                 value={cta}
                 onChange={(e) => setCta(e.target.value)}
               />
@@ -352,7 +396,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
               setCta("");
             }}
           >
-            Limpar
+            Clear
           </Button>
           <Button
             variant="gradient"
@@ -364,12 +408,12 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             {isGenerating ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Gerando...
+                Generating...
               </>
             ) : (
               <>
                 <Sparkles className="h-5 w-5" />
-                Gerar Variações A/B
+                Generate A/B Variations
               </>
             )}
           </Button>

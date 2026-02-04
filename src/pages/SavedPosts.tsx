@@ -18,23 +18,13 @@ export default function SavedPosts() {
 
   const loadPosts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/");
-        return;
-      }
+      // Demo Mode: Mock loading from localStorage
+      const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
+      setPosts(savedPosts);
 
-      const { data, error } = await supabase
-        .from("generated_posts")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setPosts(data || []);
     } catch (error: any) {
       console.error("Error loading posts:", error);
-      toast.error("Erro ao carregar posts salvos");
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -42,17 +32,16 @@ export default function SavedPosts() {
 
   const deletePost = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("generated_posts")
-        .delete()
-        .eq("id", id);
+      // Demo Mode: Delete from localStorage
+      const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
+      const filtered = savedPosts.filter((p: any) => p.id !== id);
+      localStorage.setItem('demo_saved_posts', JSON.stringify(filtered));
 
-      if (error) throw error;
-      toast.success("Post deletado com sucesso");
+      toast.success("Post deleted successfully");
       loadPosts();
     } catch (error: any) {
       console.error("Error deleting post:", error);
-      toast.error("Erro ao deletar post");
+      toast.error("Error deleting post");
     }
   };
 
@@ -69,7 +58,7 @@ export default function SavedPosts() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       // Download image if available
       if (post.image_url) {
         const response = await fetch(post.image_url);
@@ -83,11 +72,11 @@ export default function SavedPosts() {
         document.body.removeChild(imageLink);
         URL.revokeObjectURL(imageUrl);
       }
-      
-      toast.success("Download concluído!");
+
+      toast.success("Download complete!");
     } catch (error) {
       console.error("Error downloading:", error);
-      toast.error("Erro ao baixar arquivos");
+      toast.error("Error downloading files");
     }
   };
 
@@ -150,7 +139,7 @@ export default function SavedPosts() {
 
       if (insertError) throw insertError;
 
-      toast.loading("Publicando no Instagram...");
+      toast.loading("Publishing to Instagram...");
 
       const { data, error } = await supabase.functions.invoke("publish-instagram", {
         body: { scheduledPostId: scheduledPost.id },
@@ -159,21 +148,21 @@ export default function SavedPosts() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success("Post publicado com sucesso no Instagram!");
+        toast.success("Post published successfully on Instagram!");
         loadPosts();
       } else {
-        throw new Error(data.error || "Erro ao publicar");
+        throw new Error(data.error || "Error publishing");
       }
     } catch (error: any) {
       console.error("Error publishing:", error);
-      toast.error(error.message || "Erro ao publicar no Instagram");
+      toast.error(error.message || "Error publishing to Instagram");
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -183,15 +172,15 @@ export default function SavedPosts() {
       <Header />
       <main className="container py-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold">Posts Salvos</h1>
+          <h1 className="text-3xl font-display font-bold">Saved Posts</h1>
           <p className="text-muted-foreground">
-            Gerencie todos os seus posts gerados
+            Manage all your generated posts
           </p>
         </div>
 
         {posts.length === 0 ? (
           <Card className="p-12 text-center">
-            <p className="text-muted-foreground">Nenhum post salvo ainda</p>
+            <p className="text-muted-foreground">No posts saved yet</p>
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -230,7 +219,7 @@ export default function SavedPosts() {
                     className="flex-1"
                   >
                     <Download className="h-4 w-4 mr-1" />
-                    Baixar
+                    Download
                   </Button>
                   <Button
                     variant="outline"
@@ -239,7 +228,7 @@ export default function SavedPosts() {
                     className="flex-1"
                   >
                     <Calendar className="h-4 w-4 mr-1" />
-                    Agendar
+                    Schedule
                   </Button>
                   <Button
                     variant="default"
@@ -247,7 +236,7 @@ export default function SavedPosts() {
                     onClick={() => publishNow(post)}
                     className="flex-1"
                   >
-                    Publicar
+                    Publish
                   </Button>
                   <Button
                     variant="ghost"

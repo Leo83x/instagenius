@@ -94,7 +94,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       <Card className="p-6">
         <div className="text-center py-12">
           <p className="text-muted-foreground">
-            Nenhuma publicação gerada ainda. Preencha o formulário e gere suas variações!
+            No posts generated yet. Fill out the form and generate your variations!
           </p>
         </div>
       </Card>
@@ -131,7 +131,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       headlineText: editedHeadlineText || currentPost.headlineText
     };
     setIsEditing(false);
-    toast.success("Alterações salvas no preview!");
+    toast.success("Changes saved in preview!");
   };
 
   const displayPost = isEditing ? {
@@ -189,10 +189,10 @@ ${displayPost.rationale}
         URL.revokeObjectURL(imageUrl);
       }
 
-      toast.success("Post e imagem exportados com sucesso!");
+      toast.success("Post and image exported successfully!");
     } catch (error) {
       console.error("Error exporting:", error);
-      toast.error("Erro ao exportar arquivos");
+      toast.error("Error exporting files");
     } finally {
       setExporting(false);
     }
@@ -202,7 +202,7 @@ ${displayPost.rationale}
     if (!currentPost.imageUrl || !logoUrl) return;
 
     setIsComposing(true);
-    toast.info("Aplicando logo na imagem...");
+    toast.info("Applying logo to image...");
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -231,10 +231,10 @@ ${displayPost.rationale}
       // Force re-render
       setCurrentVariation(prev => prev); // This might not be enough if object ref is same
 
-      toast.success("Logo aplicada com sucesso!");
+      toast.success("Logo applied successfully!");
     } catch (error) {
-      console.error("Erro ao aplicar logo:", error);
-      toast.error("Erro ao aplicar logo na imagem");
+      console.error("Error applying logo:", error);
+      toast.error("Error applying logo to image");
     } finally {
       setIsComposing(false);
     }
@@ -292,6 +292,36 @@ ${displayPost.rationale}
     if (!displayPost) return;
 
     setSaving(true);
+
+    // DEMO MODE: Mock saving with persistence
+    setTimeout(() => {
+      try {
+        const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
+        const newPost = {
+          id: crypto.randomUUID(),
+          user_id: 'mock-user-id',
+          variant: displayPost.variant,
+          objective: "engagement",
+          theme: displayPost.caption.substring(0, 100),
+          post_type: "feed",
+          caption: displayPost.caption,
+          hashtags: displayPost.hashtags,
+          image_prompt: displayPost.imagePrompt.description,
+          image_url: displayPost.imageUrl || null,
+          alt_text: displayPost.altText,
+          rationale: displayPost.rationale,
+          status: "draft",
+          created_at: new Date().toISOString()
+        };
+        localStorage.setItem('demo_saved_posts', JSON.stringify([newPost, ...savedPosts]));
+        toast.success("Post saved successfully!");
+      } catch (e) {
+        console.error("Mock save error:", e);
+      }
+      setSaving(false);
+    }, 1000);
+
+    /*
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -323,6 +353,7 @@ ${displayPost.rationale}
     } finally {
       setSaving(false);
     }
+    */
   };
 
   return (
@@ -330,9 +361,9 @@ ${displayPost.rationale}
       <Card className="p-6 shadow-smooth">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-display font-bold">Variação {displayPost.variant}</h3>
+            <h3 className="text-xl font-display font-bold">Variation {displayPost.variant}</h3>
             <p className="text-sm text-muted-foreground">
-              {variations.length} variações geradas para teste A/B
+              {variations.length} variations generated for A/B testing
             </p>
           </div>
           <div className="flex gap-2">
@@ -377,12 +408,12 @@ ${displayPost.rationale}
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
                     <ImagePlus className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Erro ao gerar imagem</p>
+                    <p className="text-sm text-muted-foreground">Error generating image</p>
                   </div>
                 ) : (
                   <>
                     <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
-                    <p className="absolute bottom-4 text-sm text-muted-foreground">Gerando imagem...</p>
+                    <p className="absolute bottom-4 text-sm text-muted-foreground">Generating image...</p>
                   </>
                 )}
               </div>
@@ -414,21 +445,21 @@ ${displayPost.rationale}
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold">Edição em Tempo Real</h4>
+              <h4 className="font-semibold">Real-time Editing</h4>
               {!isEditing ? (
                 <Button variant="outline" size="sm" onClick={startEditing}>
                   <Edit2 className="h-4 w-4 mr-2" />
-                  Editar
+                  Edit
                 </Button>
               ) : (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={cancelEditing}>
                     <X className="h-4 w-4 mr-2" />
-                    Cancelar
+                    Cancel
                   </Button>
                   <Button variant="default" size="sm" onClick={saveEdits}>
                     <Save className="h-4 w-4 mr-2" />
-                    Salvar
+                    Save
                   </Button>
                 </div>
               )}
@@ -437,7 +468,7 @@ ${displayPost.rationale}
             {isEditing ? (
               <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                 <div>
-                  <Label htmlFor="caption">Legenda</Label>
+                  <Label htmlFor="caption">Caption</Label>
                   <Textarea
                     id="caption"
                     value={editedCaption}
@@ -447,7 +478,7 @@ ${displayPost.rationale}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="hashtags">Hashtags (separadas por espaço)</Label>
+                  <Label htmlFor="hashtags">Hashtags (separated by space)</Label>
                   <Input
                     id="hashtags"
                     value={editedHashtags}
@@ -468,12 +499,12 @@ ${displayPost.rationale}
                 </div>
                 {displayPost.headlineText && (
                   <div>
-                    <Label htmlFor="headlineText">Texto na Imagem</Label>
+                    <Label htmlFor="headlineText">Text on Image</Label>
                     <Input
                       id="headlineText"
                       value={editedHeadlineText}
                       onChange={(e) => setEditedHeadlineText(e.target.value)}
-                      placeholder="Máximo 6 palavras"
+                      placeholder="Max 6 words"
                       maxLength={50}
                       className="mt-1"
                     />
@@ -484,7 +515,7 @@ ${displayPost.rationale}
               <>
                 <div>
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Badge variant="outline">Análise Estratégica</Badge>
+                    <Badge variant="outline">Strategic Analysis</Badge>
                   </h4>
                   <p className="text-sm text-muted-foreground">{displayPost.rationale}</p>
                 </div>
@@ -492,11 +523,11 @@ ${displayPost.rationale}
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2">Prompt da Imagem</h4>
+                  <h4 className="font-semibold mb-2">Image Prompt</h4>
                   <div className="space-y-2">
                     <p className="text-sm">{displayPost.imagePrompt.description}</p>
                     <div className="flex gap-2 flex-wrap">
-                      <Badge variant="secondary">Estilo: {displayPost.imagePrompt.style}</Badge>
+                      <Badge variant="secondary">Style: {displayPost.imagePrompt.style}</Badge>
                       <Badge variant="secondary">Mood: {displayPost.imagePrompt.mood}</Badge>
                     </div>
                   </div>
@@ -505,7 +536,7 @@ ${displayPost.rationale}
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2">Texto Alternativo</h4>
+                  <h4 className="font-semibold mb-2">Alt Text</h4>
                   <p className="text-sm text-muted-foreground">{displayPost.altText}</p>
                 </div>
 
@@ -526,13 +557,13 @@ ${displayPost.rationale}
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold mb-2">Texto na Imagem</h4>
+                      <h4 className="font-semibold mb-2">Text on Image</h4>
                       <Badge variant="secondary" className="text-sm">
                         {displayPost.headlineText}
                       </Badge>
                       {displayPost.textOverlay && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Posição: {displayPost.textOverlay.position === 'top' ? 'Topo' : displayPost.textOverlay.position === 'center' ? 'Centro' : 'Rodapé'}
+                          Position: {displayPost.textOverlay.position === 'top' ? 'Top' : displayPost.textOverlay.position === 'center' ? 'Center' : 'Bottom'}
                         </p>
                       )}
                     </div>
@@ -555,12 +586,12 @@ ${displayPost.rationale}
                   {isApplyingText ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Aplicando...
+                      Applying...
                     </>
                   ) : (
                     <>
                       <Edit2 className="mr-2 h-4 w-4" />
-                      Editar Texto
+                      Edit Text
                     </>
                   )}
                 </Button>
@@ -577,12 +608,12 @@ ${displayPost.rationale}
                   {isComposing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Aplicando...
+                      Applying...
                     </>
                   ) : (
                     <>
                       <ImagePlus className="mr-2 h-4 w-4" />
-                      Aplicar Logo
+                      Apply Logo
                     </>
                   )}
                 </Button>
@@ -597,29 +628,12 @@ ${displayPost.rationale}
                 {exporting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Exportando...
+                    Exporting...
                   </>
                 ) : (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Exportar
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleSaveToDatabase}
-                disabled={saving}
-                className="flex-1 md:flex-none btn-shimmer"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Salvar Post
+                    Export
                   </>
                 )}
               </Button>

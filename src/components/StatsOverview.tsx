@@ -19,31 +19,12 @@ export function StatsOverview() {
 
   const loadStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: posts } = await supabase
-        .from("generated_posts")
-        .select("*")
-        .eq("user_id", user.id);
-
-      const { data: scheduled } = await supabase
-        .from("scheduled_posts")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "scheduled");
-
-      const { data: profile } = await supabase
-        .from("company_profiles")
-        .select("ai_credits_remaining, ai_credits_total")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
+      // Demo Mode: Mock stats
       setStats({
-        postsGerados: posts?.length || 0,
-        postsAgendados: scheduled?.length || 0,
-        aiCredits: profile?.ai_credits_remaining || 0,
-        aiCreditsTotal: profile?.ai_credits_total || 100,
+        postsGerados: 12,
+        postsAgendados: 5,
+        aiCredits: 85,
+        aiCreditsTotal: 100,
       });
     } catch (error) {
       console.error("Error loading stats:", error);

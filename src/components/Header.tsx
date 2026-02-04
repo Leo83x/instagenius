@@ -26,30 +26,30 @@ export function Header() {
   };
 
   const mainNavItems = [
-    { to: "/", label: "Início", icon: Instagram },
+    { to: "/dashboard", label: "Home", icon: Instagram },
     { to: "/posts", label: "Posts", icon: BookmarkCheck },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
-    { to: "/themes", label: "Temas", icon: Lightbulb },
-    { to: "/images", label: "Imagens", icon: Image },
+    { to: "/themes", label: "Themes", icon: Lightbulb },
+    { to: "/images", label: "Images", icon: Image },
   ];
 
   const accountMenuItems = [
     { to: "/instagram", label: "Instagram", icon: Link2 },
-    { to: "/subscription", label: "Planos", icon: CreditCard },
-    { to: "/settings", label: "Configurações", icon: SettingsIcon },
+    { to: "/subscription", label: "Plans", icon: CreditCard },
+    { to: "/settings", label: "Settings", icon: SettingsIcon },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-8">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/dashboard")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-instagram">
               <Instagram className="h-5 w-5 text-white" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-xl font-display font-bold">Studio Genius</h1>
-              <p className="text-xs text-muted-foreground">Gerador de Conteúdo IA</p>
+              <p className="text-xs text-muted-foreground">AI Content Generator</p>
             </div>
           </div>
 
@@ -86,7 +86,7 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
-                  Sair
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -138,7 +138,7 @@ export function Header() {
                     onClick={handleSignOut}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    Sair
+                    Logout
                   </Button>
                 </div>
               </div>

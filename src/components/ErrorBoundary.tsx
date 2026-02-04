@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             Desculpe, ocorreu um erro inesperado. Por favor, tente novamente.
                         </p>
                         {this.state.error && (
-                            <details className="text-left text-sm">
+                            <details open className="text-left text-sm">
                                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                                     Detalhes técnicos
                                 </summary>

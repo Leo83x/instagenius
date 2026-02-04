@@ -24,7 +24,7 @@ const Index = () => {
 
     if (needsComposition) {
       setComposingLogos(true);
-      toast.info("Adicionando logo às imagens...");
+      toast.info("Adding logo to images...");
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +61,7 @@ const Index = () => {
                 };
               } catch (error) {
                 console.error(`Failed to compose logo for variant ${variation.variant}:`, error);
-                toast.error(`Erro ao adicionar logo na variação ${variation.variant}`);
+                toast.error(`Error adding logo to variation ${variation.variant}`);
                 return variation;
               }
             }
@@ -70,10 +70,10 @@ const Index = () => {
         );
 
         setGeneratedVariations(processedVariations);
-        toast.success("Logo adicionada com sucesso!");
+        toast.success("Logo added successfully!");
       } catch (error) {
         console.error("Error composing logos:", error);
-        toast.error("Erro ao adicionar logos");
+        toast.error("Error adding logos");
         setGeneratedVariations(variations);
       } finally {
         setComposingLogos(false);
@@ -99,7 +99,7 @@ const Index = () => {
         <div className="space-y-1 md:space-y-2 animate-in fade-in slide-in-from-bottom-4">
           <h1 className="text-2xl md:text-3xl font-display font-bold">Dashboard</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Transforme suas ideias em posts profissionais para Instagram
+            Transform your ideas into professional Instagram posts
           </p>
         </div>
 
@@ -107,10 +107,10 @@ const Index = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
           <TabsList className="grid w-full grid-cols-4 h-auto">
-            <TabsTrigger value="create" className="text-xs md:text-sm py-2">Criar Post</TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs md:text-sm py-2">Visualizar</TabsTrigger>
-            <TabsTrigger value="schedule" className="text-xs md:text-sm py-2">Agenda</TabsTrigger>
-            <TabsTrigger value="saved" className="text-xs md:text-sm py-2">Salvos</TabsTrigger>
+            <TabsTrigger value="create" className="text-xs md:text-sm py-2">Create Post</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs md:text-sm py-2">Preview</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm py-2">Schedule</TabsTrigger>
+            <TabsTrigger value="saved" className="text-xs md:text-sm py-2">Saved</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6 animate-in fade-in">
@@ -122,7 +122,7 @@ const Index = () => {
               <PostPreview variations={generatedVariations} />
             ) : (
               <div className="text-center py-12 text-muted-foreground animate-in fade-in">
-                Gere um post primeiro para visualizar
+                Generate a post first to preview
               </div>
             )}
           </TabsContent>

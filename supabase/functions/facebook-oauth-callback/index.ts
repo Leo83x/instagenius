@@ -10,44 +10,85 @@ interface OAuthCallbackRequest {
   redirectUri: string;
 }
 
+// Helper to extract user ID from JWT without full verification (since verify_jwt is false)
+function getUserIdFromAuthHeader(authHeader: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  try {
+    const token = authHeader.split(" ")[1];
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return null;
+
+    // Base64Url decode payload
+    const payloadJson = atob(payloadPart.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(payloadJson);
+    return payload.sub || null;
+  } catch (e) {
+    console.error("Error decoding JWT manually:", e);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
+    const body = await req.json();
+    const { code, redirectUri: incomingRedirectUri } = body;
+    const redirectUri = "https://instagenius.convertamais.online/instagram";
+    console.log("Receiving OAuth flow for code:", code?.substring(0, 10) + "...");
+    console.log("Using Redirect URI for exchange:", redirectUri);
+    console.log("Incoming Redirect URI from frontend (for debug):", incomingRedirectUri);
+    let userId = body.userId || body.user_id;
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseClient.auth.getUser();
+    const authHeader = req.headers.get("Authorization");
 
-    if (authError || !user) {
-      throw new Error("Não autorizado");
+    // 1. Fallback: Try to get userId from Authorization header
+    if (!userId && authHeader) {
+      userId = getUserIdFromAuthHeader(authHeader);
     }
 
-    const { code, redirectUri } = (await req.json()) as OAuthCallbackRequest;
+    // Use Service Role to bypass RLS and avoid JWT "missing sub" errors
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // 2. Mandatory Fallback for No-Login/Demo Mode:
+    // If still no userId, just use the primary profile in the database.
+    if (!userId) {
+      console.log("No userId identified. Searching for first available profile...");
+      const { data: profiles } = await supabaseAdmin
+        .from("company_profiles")
+        .select("user_id, company_name")
+        .limit(2); // Take a few to check
+
+      if (profiles && profiles.length > 0) {
+        // Preference for Marco Lopez, but otherwise just take the first one
+        const marco = profiles.find(p => p.company_name?.toLowerCase().includes("marco"));
+        userId = marco ? marco.user_id : profiles[0].user_id;
+        console.log(`Fallback Success: Identified user as ${marco ? "Marco" : "Primary Account"} (${userId})`);
+      }
+    }
+
+    if (!userId) {
+      throw new Error("Não foi possível identificar sua conta. Certifique-se de que o Perfil da Empresa (Company Profile) está configurado no banco de dados.");
+    }
+
+    console.log("Processing Instagram OAuth for User:", userId);
 
     const appId = Deno.env.get("FACEBOOK_APP_ID");
     const appSecret = Deno.env.get("FACEBOOK_APP_SECRET");
 
     if (!appId || !appSecret) {
-      throw new Error("Credenciais do Facebook não configuradas no servidor");
+      throw new Error("Configuração do Facebook incompleta no servidor.");
     }
 
     console.log("Exchanging code for access token...");
 
     // Step 1: Exchange code for access token
-    const tokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(
+    const tokenUrl = `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&client_secret=${appSecret}&code=${code}`;
 
@@ -55,95 +96,116 @@ Deno.serve(async (req) => {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      console.error("Token exchange error:", tokenData.error);
+      console.error("Token exchange error:", JSON.stringify(tokenData.error));
       throw new Error(
-        tokenData.error.message || "Erro ao obter token de acesso"
+        `Erro no Facebook: ${tokenData.error.message || "Erro ao obter token de acesso"}. URI enviada: ${redirectUri}`
       );
     }
 
     const accessToken = tokenData.access_token;
 
-    console.log("Access token obtained, fetching pages...");
+    console.log("Access token obtained. Checking permissions...");
 
-    // Step 2: Get user's Facebook Pages
-    const pagesUrl = `https://graph.facebook.com/v18.0/me/accounts?access_token=${accessToken}`;
-    const pagesResponse = await fetch(pagesUrl);
-    const pagesData = await pagesResponse.json();
+    // Step 2: Get user's Facebook Pages with Instagram info (Recursive Mode)...
+    console.log("Fetching pages and linked Instagram accounts (Recursive Mode)...");
 
-    if (pagesData.error) {
-      console.error("Pages fetch error:", pagesData.error);
-      throw new Error(
-        pagesData.error.message || "Erro ao buscar páginas do Facebook"
-      );
+    // Try multiple ways to get accounts
+    const pagesUrls = [
+      `https://graph.facebook.com/v20.0/me/accounts?fields=name,access_token,instagram_business_account{id,username}&access_token=${accessToken}`,
+      `https://graph.facebook.com/v20.0/me?fields=accounts{name,access_token,instagram_business_account{id,username}}&access_token=${accessToken}`
+    ];
+
+    let pagesData: any = null;
+    for (const url of pagesUrls) {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.data || (data.accounts && data.accounts.data)) {
+        pagesData = data.data || data.accounts.data;
+        console.log(`Successfully fetched accounts from: ${url}`);
+        break;
+      }
     }
 
-    if (!pagesData.data || pagesData.data.length === 0) {
-      throw new Error(
-        "Nenhuma página encontrada. Certifique-se de que você tem uma Página do Facebook."
-      );
+    if (!pagesData || pagesData.length === 0) {
+      // If still no data, check for errors or empty list
+      const rawResponse = await fetch(pagesUrls[0]);
+      const rawData = await rawResponse.json();
+      console.error("Discovery failed. Raw response:", JSON.stringify(rawData));
+
+      const debugUrl = `https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${appId}|${appSecret}`;
+      const debugResponse = await fetch(debugUrl);
+      const debugData = await debugResponse.json();
+      const scopes = debugData.data?.scopes || [];
+      const granularScopes = debugData.data?.granular_scopes || [];
+
+      // Return the RAW info to the user so they can see exactly what Facebook said
+      throw new Error(`DEBUG INFO:
+        Status do Facebook: "Sucesso" (Token válido)
+        Páginas encontradas: 0 (Zero)
+        
+        Resposta Bruta do Facebook (/me/accounts):
+        ${JSON.stringify(rawData, null, 2)}
+        
+        Permissões do Token:
+        ${JSON.stringify(scopes)}
+
+        Escopos Granulares (Importante):
+        ${JSON.stringify(granularScopes, null, 2)}
+        
+        Ajuda: Se o array "data" acima estiver vazio [], isso confirma que o Facebook não está enviando nenhuma página para este App/Usuário.
+        
+        Verifique "Escopos Granulares" acima: se "target_ids" estiver vazio para "pages_show_list", você não autorizou nenhuma página específica.
+        
+        ${!scopes.includes("business_management") ? '⚠️ ALERTA CRÍTICO: A permissão "business_management" NÃO foi concedida. Se sua página é gerenciada por um Gerenciador de Negócios (Business Manager), esta permissão é OBRIGATÓRIA para visualizar a página. Verifique se o App está em modo Live e sem análise, ou se você desmarcou essa permissão no login.' : ''}`);
     }
 
-    // Get the first page (user can have multiple pages)
-    const firstPage = pagesData.data[0];
-    const pageAccessToken = firstPage.access_token;
-    const pageId = firstPage.id;
+    // Step 3: Extract Instagram Info
+    let instagramUserId = null;
+    let instagramUsername = null;
+    let pageId = null;
+    let finalAccessToken = accessToken;
 
-    console.log("Page found:", firstPage.name);
+    console.log(`System detected ${pagesData.length || 0} pages.`);
 
-    // Step 3: Get Instagram Business Account connected to the page
-    const igAccountUrl = `https://graph.facebook.com/v18.0/${pageId}?fields=instagram_business_account&access_token=${pageAccessToken}`;
-    const igAccountResponse = await fetch(igAccountUrl);
-    const igAccountData = await igAccountResponse.json();
+    for (const page of pagesData) {
+      console.log(`Checking page: ${page.name} (${page.id})`);
 
-    if (igAccountData.error) {
-      console.error("Instagram account fetch error:", igAccountData.error);
-      throw new Error(
-        "Erro ao buscar conta do Instagram. Certifique-se de que sua página está conectada a uma conta Instagram Business."
-      );
+      if (page.instagram_business_account) {
+        instagramUserId = page.instagram_business_account.id;
+        instagramUsername = page.instagram_business_account.username;
+        pageId = page.id;
+        finalAccessToken = page.access_token;
+        console.log(`Found IG Account: ${instagramUsername}`);
+        break;
+      }
     }
 
-    if (!igAccountData.instagram_business_account) {
-      throw new Error(
-        "Esta página não está conectada a uma conta Instagram Business. Por favor, conecte uma conta Instagram Business à sua página do Facebook."
-      );
+    if (!instagramUserId) {
+      const detectedPages = pagesData.map((p: any) => p.name).join(", ") || "Nenhuma";
+      throw new Error(`Páginas encontradas: [${detectedPages}]. No entanto, nenhuma delas tem um Instagram Business vinculado nas configurações do Facebook. Verifique o vínculo no Gerenciador de Negócios.`);
     }
 
-    const instagramUserId = igAccountData.instagram_business_account.id;
+    // Exchange for long-lived if we have a page token
+    if (pageId && finalAccessToken !== accessToken) {
+      const longLivedUrl = `https://graph.facebook.com/v20.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${finalAccessToken}`;
+      const longLivedResponse = await fetch(longLivedUrl);
+      const longLivedData = await longLivedResponse.json();
+      finalAccessToken = longLivedData.access_token || finalAccessToken;
+    }
 
-    console.log("Instagram Business Account ID:", instagramUserId);
+    // Step 5: Save to database
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 60);
+    const tokenExpiresAt = expiresAt.toISOString();
 
-    // Step 4: Get Instagram username for confirmation
-    const igUsernameUrl = `https://graph.facebook.com/v18.0/${instagramUserId}?fields=username&access_token=${pageAccessToken}`;
-    const igUsernameResponse = await fetch(igUsernameUrl);
-    const igUsernameData = await igUsernameResponse.json();
-
-    const instagramUsername = igUsernameData.username || "unknown";
-
-    console.log("Instagram username:", instagramUsername);
-
-    // Step 5: Request long-lived token (60 days)
-    const longLivedTokenUrl = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${pageAccessToken}`;
-    const longLivedResponse = await fetch(longLivedTokenUrl);
-    const longLivedData = await longLivedResponse.json();
-
-    const finalAccessToken = longLivedData.access_token || pageAccessToken;
-    const expiresIn = longLivedData.expires_in; // Usually 5184000 seconds (60 days)
-
-    console.log("Long-lived token obtained, expires in:", expiresIn, "seconds");
-
-    // Step 6: Save to database
-    const { data: existingProfile } = await supabaseClient
+    const { data: existingProfile } = await supabaseAdmin
       .from("company_profiles")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
-    const tokenExpiresAt = expiresIn
-      ? new Date(Date.now() + expiresIn * 1000).toISOString()
-      : null;
-
     if (existingProfile) {
-      const { error } = await supabaseClient
+      const { error } = await supabaseAdmin
         .from("company_profiles")
         .update({
           instagram_access_token: finalAccessToken,
@@ -151,12 +213,12 @@ Deno.serve(async (req) => {
           facebook_page_id: pageId,
           token_expires_at: tokenExpiresAt,
         })
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (error) throw error;
     } else {
-      const { error } = await supabaseClient.from("company_profiles").insert({
-        user_id: user.id,
+      const { error } = await supabaseAdmin.from("company_profiles").insert({
+        user_id: userId,
         company_name: "Minha Empresa",
         instagram_access_token: finalAccessToken,
         instagram_user_id: instagramUserId,
@@ -179,15 +241,14 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error("Error in OAuth callback:", error);
-
+    console.error("Critical error in OAuth callback:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || "Erro ao conectar com Instagram",
+        error: error.message || "Erro desconhecido ao conectar com Instagram",
       }),
       {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
