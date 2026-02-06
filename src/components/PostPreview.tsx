@@ -126,10 +126,11 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const handleImageError = () => {
     console.warn("Image load error detected for variant", displayPost.variant);
 
+    // Fallback sequence: Original -> Supabase -> Emergency Unsplash -> LoremFlickr -> Fixed Base64
     if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
       console.log("Switching to Fallback 1: Supabase Storage");
       setActiveImageUrl(currentPost.supabaseUrl);
-    } else if (!activeImageUrl?.includes('unsplash.com') && !activeImageUrl?.includes('loremflickr.com')) {
+    } else if (!activeImageUrl?.includes('unsplash.com') && !activeImageUrl?.includes('loremflickr.com') && !activeImageUrl?.includes('data:image')) {
       console.log("Switching to Fallback 2: Emergency Unsplash");
       const query = encodeURIComponent(currentPost.altText || "marketing,business");
       setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
@@ -138,8 +139,9 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
       setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
     } else if (activeImageUrl?.includes('loremflickr.com')) {
-      console.log("Switching to Fallback 4: Final Placeholder");
-      setActiveImageUrl(`https://placehold.co/1080x1080/6366f1/ffffff?text=InstaGenius+Post`);
+      console.log("Switching to Fallback 4: Internal Base64 SVG (CSP Proof)");
+      // Simple grey placeholder with text
+      setActiveImageUrl("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTA4MCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEwODAiIGZpbGw9IiNFMkU4RjAiLz48dGV4dCB4PSI1NDAiIHk9IjU0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQwIiBmaWxsPSIjOTQ0Qjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbWFnZW0gSW5zdGFHZW5pdXM8L3RleHQ+PC9zdmc+");
     }
   };
 
@@ -294,7 +296,15 @@ ESTRATÉGIA: ${displayPost.rationale}
               {variations.length} variations generated for A/B testing
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] uppercase tracking-widest opacity-30 hover:opacity-100"
+              onClick={() => setShowDebug(!showDebug)}
+            >
+              Diagnostic
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -595,6 +605,18 @@ ESTRATÉGIA: ${displayPost.rationale}
           onApply={handleApplyTextWithConfig}
           onCancel={() => setShowTextEditor(false)}
         />
+      )}
+
+      {showDebug && (
+        <Card className="p-4 bg-slate-900 text-slate-100 font-mono text-[10px] border-none">
+          <h5 className="text-slate-400 mb-2 uppercase border-b border-slate-800 pb-1">Image Pipeline Status</h5>
+          <div className="space-y-1">
+            <p><span className="text-blue-400">Current Source:</span> {activeImageUrl}</p>
+            <p><span className="text-green-400">Direct AI Link:</span> {displayPost.imageUrl || 'None'}</p>
+            <p><span className="text-purple-400">Supabase Link:</span> {currentPost.supabaseUrl || 'None'}</p>
+            <p><span className="text-yellow-400">Status:</span> {activeImageUrl === displayPost.imageUrl ? 'Attempting Original' : 'Using Fallback'}</p>
+          </div>
+        </Card>
       )}
     </div>
   );
