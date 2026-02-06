@@ -170,7 +170,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     }
     toast.info("Tentando outra fonte de imagem...");
   };
- kitchen sink
 
   const handleExport = async () => {
     if (!displayPost) return;
