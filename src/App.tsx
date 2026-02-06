@@ -38,8 +38,39 @@ const queryClient = new QueryClient({
 // Protected Route Component
 // Demo Mode: Bypassing Auth Check
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // Mock session for video recording
-  const session = { user: { id: 'mock-user-id', email: 'demo@example.com' } };
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // Listen for changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
   return <>{children}</>;
 };
 

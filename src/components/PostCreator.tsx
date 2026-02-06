@@ -59,14 +59,24 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
 
   const loadCompanyProfile = async () => {
     try {
-      // Demo Mode: Skip real profile load
-      setCompanyProfile({
-        company_name: "Demo Studio",
-        default_tone: "professional",
-        brand_colors: ["#8b5cf6", "#ec4899", "#f59e0b"]
-      });
-      setTone("professional");
-      setBrandColors(["#8b5cf6", "#ec4899", "#f59e0b"]);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("company_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setCompanyProfile(data);
+        setTone(data.default_tone || "professional");
+        if (data.brand_colors && data.brand_colors.length > 0) {
+          setBrandColors(data.brand_colors);
+        }
+      }
     } catch (error) {
       console.error("Error loading company profile:", error);
     } finally {
@@ -83,64 +93,17 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
     setIsGenerating(true);
 
     try {
-      // Demo Mode: Mock generation
-      setTimeout(() => {
-        const mockVariations = [
-          {
-            variant: "A",
-            caption: `🚀 ${theme} \n\nLooking for the best solution? We're here to help! \n\n#innovation #quality #business`,
-            hashtags: ["#innovation", "#quality", "#business"],
-            headlineText: "Transform Your Business",
-            imagePrompt: {
-              description: "Professional business environment",
-              colors: brandColors,
-              style: style,
-              aspectRatio: "1:1",
-              elements: [],
-              mood: tone
-            },
-            altText: "Business office scene",
-            rationale: "Focuses on professional appeal",
-            imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
-            textOverlay: {
-              text: "Transform Your Business",
-              position: textPosition
-            }
-          },
-          {
-            variant: "B",
-            caption: `✨ ${theme} \n\nUnlock your potential with our premium services. \n\n#growth #success #premium`,
-            hashtags: ["#growth", "#success", "#premium"],
-            headlineText: "Achieve More",
-            imagePrompt: {
-              description: "Abstract representation of growth",
-              colors: brandColors,
-              style: style,
-              aspectRatio: "1:1",
-              elements: [],
-              mood: tone
-            },
-            altText: "Abstract growth visualization",
-            rationale: "Focuses on aspirational growth",
-            imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80",
-            textOverlay: {
-              text: "Achieve More",
-              position: textPosition
-            }
-          }
-        ];
-
-        toast.success("Posts generated successfully!");
-        if (onPostGenerated) {
-          onPostGenerated(mockVariations);
-        }
-        setIsGenerating(false);
-      }, 2000);
-
-      /*
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("You need to be logged in");
+        setIsGenerating(false);
+        return;
+      }
+
+      // Check credits
+      if (companyProfile && companyProfile.ai_credits_remaining <= 0) {
+        toast.error("Você atingiu o limite de créditos de IA para este mês.");
+        setIsGenerating(false);
         return;
       }
 
@@ -171,20 +134,23 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         throw error;
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      const responseData = data;
+      if (responseData.error) {
+        throw new Error(responseData.error);
       }
 
-      toast.success("Posts generated successfully!");
+      // Refresh profile to update credits UI
+      await loadCompanyProfile();
+
+      toast.success("Posts gerados com sucesso!");
 
       if (onPostGenerated && data.variations) {
         onPostGenerated(data.variations);
       }
-      */
-
     } catch (error: any) {
       console.error('Error generating post:', error);
       toast.error(error.message || "Error generating post. Please try again.");
+    } finally {
       setIsGenerating(false);
     }
   };

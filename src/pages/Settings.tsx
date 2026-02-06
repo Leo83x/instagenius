@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Header } from "@/components/Header";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function Settings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/");
+        navigate("/login");
         return;
       }
 
@@ -169,7 +170,7 @@ export default function Settings() {
       if (error) throw error;
 
       toast.success("Perfil salvo com sucesso!");
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Erro ao salvar perfil");
@@ -188,10 +189,11 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="container py-8 max-w-4xl">
         <Button
           variant="ghost"
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

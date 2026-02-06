@@ -42,8 +42,9 @@ interface PostVariation {
   altText: string;
   rationale: string;
   imageUrl?: string;
+  supabaseUrl?: string; // NEW - Fallback URL
   imageError?: string;
-  textOverlay?: {  // NEW - metadata for client-side rendering
+  textOverlay?: {
     text: string;
     position: 'top' | 'center' | 'bottom';
   };
@@ -140,7 +141,30 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
     imageUrl: editedImageUrl || currentPost.imageUrl,
     headlineText: editedHeadlineText || currentPost.headlineText
-  } : currentPost;
+  } : {
+    ...currentPost,
+    // Ensure we have a local version that we can mutate if fallback is needed
+  };
+
+  const [activeImageUrl, setActiveImageUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setActiveImageUrl(displayPost.imageUrl);
+  }, [displayPost.imageUrl, currentVariation]);
+
+  const handleImageError = () => {
+    if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
+      console.warn("PostPreview: Try fallback 1 (Supabase)...");
+      setActiveImageUrl(currentPost.supabaseUrl);
+    } else if (activeImageUrl !== `https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80`) {
+      console.warn("PostPreview: Try fallback 2 (Emergency Unsplash)...");
+      // Use Unsplash Source based on keywords
+      const keywords = encodeURIComponent(currentPost.altText || "business technology");
+      setActiveImageUrl(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+    } else {
+      console.error("PostPreview: All image fallbacks failed.");
+    }
+  };
 
   const handleExport = async () => {
     if (!displayPost) return;
@@ -292,36 +316,6 @@ ${displayPost.rationale}
     if (!displayPost) return;
 
     setSaving(true);
-
-    // DEMO MODE: Mock saving with persistence
-    setTimeout(() => {
-      try {
-        const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
-        const newPost = {
-          id: crypto.randomUUID(),
-          user_id: 'mock-user-id',
-          variant: displayPost.variant,
-          objective: "engagement",
-          theme: displayPost.caption.substring(0, 100),
-          post_type: "feed",
-          caption: displayPost.caption,
-          hashtags: displayPost.hashtags,
-          image_prompt: displayPost.imagePrompt.description,
-          image_url: displayPost.imageUrl || null,
-          alt_text: displayPost.altText,
-          rationale: displayPost.rationale,
-          status: "draft",
-          created_at: new Date().toISOString()
-        };
-        localStorage.setItem('demo_saved_posts', JSON.stringify([newPost, ...savedPosts]));
-        toast.success("Post saved successfully!");
-      } catch (e) {
-        console.error("Mock save error:", e);
-      }
-      setSaving(false);
-    }, 1000);
-
-    /*
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -332,13 +326,13 @@ ${displayPost.rationale}
       const { error } = await supabase.from("generated_posts").insert({
         user_id: user.id,
         variant: displayPost.variant,
-        objective: "engagement",
+        objective: "engagement", // Original intent
         theme: displayPost.caption.substring(0, 100),
         post_type: "feed",
         caption: displayPost.caption,
         hashtags: displayPost.hashtags,
         image_prompt: displayPost.imagePrompt.description,
-        image_url: displayPost.imageUrl || null,
+        image_url: activeImageUrl || displayPost.imageUrl || null,
         alt_text: displayPost.altText,
         rationale: displayPost.rationale,
         status: "draft"
@@ -353,7 +347,6 @@ ${displayPost.rationale}
     } finally {
       setSaving(false);
     }
-    */
   };
 
   return (
@@ -399,11 +392,12 @@ ${displayPost.rationale}
               </div>
 
               <div className="bg-muted aspect-square flex items-center justify-center relative">
-                {displayPost.imageUrl ? (
+                {activeImageUrl ? (
                   <img
-                    src={displayPost.imageUrl}
+                    src={activeImageUrl}
                     alt={displayPost.altText}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
@@ -634,6 +628,25 @@ ${displayPost.rationale}
                   <>
                     <Download className="mr-2 h-4 w-4" />
                     Export
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="default"
+                onClick={handleSaveToDatabase}
+                disabled={saving}
+                className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save to Database
                   </>
                 )}
               </Button>

@@ -18,16 +18,29 @@ export function Auth() {
 
   const handleAuth = async (isSignUp: boolean) => {
     setLoading(true);
-    // Simulate network delay for video
-    setTimeout(() => {
-      setLoading(false);
+    try {
       if (isSignUp) {
-        toast.success("Account created successfully!");
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Account created! You can now log in.");
       } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
         toast.success("Login successful!");
+        navigate('/dashboard');
       }
-      navigate('/dashboard');
-    }, 1500);
+    } catch (error: any) {
+      console.error("Auth error:", error);
+      toast.error(error.message || "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

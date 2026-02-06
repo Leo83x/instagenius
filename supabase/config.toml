@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.facebook-oauth-callback]
 verify_jwt = false
+
+[functions.diag-storage]
+verify_jwt = false
+
+[functions.diag-gemini]
+verify_jwt = false

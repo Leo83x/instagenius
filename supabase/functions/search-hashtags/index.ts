@@ -47,7 +47,7 @@ serve(async (req) => {
       .single();
 
     // Gemini API Key Logic
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCW0xygwfkFwPxQHlHxT5ikqopqxi63Do8';
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCf6l4VhVxYDXZBe5hX1eIYWk6KwV-gLHk';
 
     // Use AI to suggest relevant hashtags based on the business profile
     const systemPrompt = `Você é um especialista em marketing digital e Instagram Business.
@@ -106,20 +106,33 @@ Sugira 20 hashtags estratégicas para essa empresa usar no Instagram.
       }
     };
 
-    console.log('Calling Google Gemini API (search-hashtags)...');
+    console.log('Calling Google Gemini API (Model: gemini-2.0-flash)...');
 
-    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(geminiPayload),
+      body: JSON.stringify({
+        contents: geminiPayload.contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
+        }
+      }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('Gemini API error:', aiResponse.status, errorText);
-      throw new Error(`Gemini API error: ${aiResponse.status} ${errorText}`);
+
+      let friendlyError = `Erro na IA (${aiResponse.status}): ${errorText.substring(0, 50)}`;
+      if (aiResponse.status === 429) {
+        friendlyError = "Limite de requisições atingido. Por favor, aguarde 60 segundos e tente novamente.";
+      }
+
+      throw new Error(friendlyError);
     }
 
     const aiData = await aiResponse.json();

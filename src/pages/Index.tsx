@@ -13,12 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
-  const [generatedVariations, setGeneratedVariations] = useState<GeneratedPost | null>(null);
+  const [generatedPost, setGeneratedPost] = useState<GeneratedPost | null>(null);
   const [activeTab, setActiveTab] = useState("create");
   const [composingLogos, setComposingLogos] = useState(false);
   const navigate = useNavigate();
 
-  const handlePostGenerated = async (variations: any) => {
+  const handlePostGenerated = async (variations: any[]) => {
     // Check if any variation needs logo composition
     const needsComposition = variations.some((v: any) => v.needsLogoComposition && v.logoUrl && v.imageUrl);
 
@@ -69,17 +69,17 @@ const Index = () => {
           })
         );
 
-        setGeneratedVariations(processedVariations);
+        setGeneratedPost({ variations: processedVariations, metadata: ({} as any) });
         toast.success("Logo added successfully!");
       } catch (error) {
         console.error("Error composing logos:", error);
         toast.error("Error adding logos");
-        setGeneratedVariations(variations);
+        setGeneratedPost({ variations: variations, metadata: ({} as any) });
       } finally {
         setComposingLogos(false);
       }
     } else {
-      setGeneratedVariations(variations);
+      setGeneratedPost({ variations: variations, metadata: ({} as any) });
     }
 
     setActiveTab("preview");
@@ -118,8 +118,8 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="preview" className="space-y-6 animate-in fade-in">
-            {generatedVariations ? (
-              <PostPreview variations={generatedVariations} />
+            {generatedPost ? (
+              <PostPreview variations={generatedPost.variations} />
             ) : (
               <div className="text-center py-12 text-muted-foreground animate-in fade-in">
                 Generate a post first to preview

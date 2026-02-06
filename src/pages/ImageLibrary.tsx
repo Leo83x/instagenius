@@ -144,12 +144,12 @@ export default function ImageLibrary() {
   };
 
   const filteredImages = images.filter((image) => {
-    const matchesSearch = 
+    const matchesSearch =
       searchTerm === "" ||
       image.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       image.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesTags = 
+    const matchesTags =
       selectedTags.length === 0 ||
       selectedTags.some((tag) => image.tags.includes(tag));
 
@@ -172,7 +172,7 @@ export default function ImageLibrary() {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -181,7 +181,7 @@ export default function ImageLibrary() {
               Gerencie e reutilize seus assets visuais
             </p>
           </div>
-          
+
           <div>
             <Input
               type="file"
@@ -216,7 +216,7 @@ export default function ImageLibrary() {
                 />
               </div>
             </div>
-            
+
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {allTags.map((tag) => (

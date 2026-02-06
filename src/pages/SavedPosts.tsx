@@ -18,10 +18,17 @@ export default function SavedPosts() {
 
   const loadPosts = async () => {
     try {
-      // Demo Mode: Mock loading from localStorage
-      const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
-      setPosts(savedPosts);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      const { data, error } = await supabase
+        .from("generated_posts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPosts(data || []);
     } catch (error: any) {
       console.error("Error loading posts:", error);
       setPosts([]);
@@ -32,16 +39,18 @@ export default function SavedPosts() {
 
   const deletePost = async (id: string) => {
     try {
-      // Demo Mode: Delete from localStorage
-      const savedPosts = JSON.parse(localStorage.getItem('demo_saved_posts') || '[]');
-      const filtered = savedPosts.filter((p: any) => p.id !== id);
-      localStorage.setItem('demo_saved_posts', JSON.stringify(filtered));
+      const { error } = await supabase
+        .from("generated_posts")
+        .delete()
+        .eq("id", id);
 
-      toast.success("Post deleted successfully");
+      if (error) throw error;
+
+      toast.success("Post excluído com sucesso");
       loadPosts();
     } catch (error: any) {
       console.error("Error deleting post:", error);
-      toast.error("Error deleting post");
+      toast.error("Erro ao excluir post");
     }
   };
 
@@ -99,7 +108,7 @@ export default function SavedPosts() {
       }
 
       // Navigate to schedule page
-      navigate("/", { state: { schedulePostId: postId } });
+      navigate("/dashboard", { state: { schedulePostId: postId } });
     } catch (error) {
       console.error("Error:", error);
       toast.error("Erro ao agendar post");
@@ -187,10 +196,9 @@ export default function SavedPosts() {
             {posts.map((post) => (
               <Card key={post.id} className="p-6 space-y-4">
                 {post.image_url && (
-                  <img
+                  <PostImage
                     src={post.image_url}
                     alt={post.alt_text || "Post"}
-                    className="w-full aspect-square object-cover rounded-lg"
                   />
                 )}
                 <div className="space-y-2">
@@ -252,5 +260,34 @@ export default function SavedPosts() {
         )}
       </main>
     </div>
+  );
+}
+
+function PostImage({ src, alt }: { src: string; alt: string }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setHasError(false);
+  }, [src]);
+
+  const handleError = () => {
+    if (currentSrc === src && !src.includes('source.unsplash.com')) {
+      console.warn("SavedPosts: Image load failed, trying emergency fallback...");
+      const keywords = encodeURIComponent(alt || "business technology");
+      setCurrentSrc(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+    } else {
+      console.error("SavedPosts: All image fallbacks failed.");
+    }
+  };
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      onError={handleError}
+      className="w-full aspect-square object-cover rounded-lg"
+    />
   );
 }

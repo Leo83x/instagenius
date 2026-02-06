@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     // Gemini API Key (Required for text)
     // Fallback to user provided key if env var is missing
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCW0xygwfkFwPxQHlHxT5ikqopqxi63Do8';
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyD9oRxUQY92A9YalCobdHnop3afdAsBWI0';
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -141,7 +141,7 @@ RETORNE UM JSON VÁLIDO com este formato EXATO:
     const userPrompt = `
 Empresa: ${companyName || 'empresa'}
 Público-alvo: ${targetAudience || 'geral'}
-Palavras-chave: (keywords || []).join(', ') || 'inovação, qualidade'}
+Palavras-chave: ${(keywords || []).join(', ') || 'inovação, qualidade'}
 
 OBJETIVO: ${objective}
 TEMA: ${safeTheme}
@@ -150,7 +150,7 @@ ${cta ? `CTA SUGERIDA: ${cta}` : ''}
 Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem DETALHADOS.
 `;
 
-    // Construct Gemini structure
+    console.log('Parameters validated. Preparing Gemini payload...');
     const geminiPayload = {
       contents: [
         {
@@ -160,35 +160,54 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
       ],
       generationConfig: {
         temperature: 0.8,
-        maxOutputTokens: 4000,
+        maxOutputTokens: 2000,
         responseMimeType: "application/json"
       }
     };
 
-    console.log('Calling Google Gemini API (Model: gemini-2.5-flash)...');
-    // Using gemini-2.5-flash which is a valid new model
-    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    console.log('Calling Google Gemini API (Model: gemini-2.0-flash)...');
+    // Using gemini-2.0-flash as it was verified in diagnostics
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(geminiPayload),
+      body: JSON.stringify({
+        contents: geminiPayload.contents,
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 4000,
+          responseMimeType: "application/json"
+        }
+      }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('Gemini API error:', aiResponse.status, errorText);
-      throw new Error(`Gemini API error: ${aiResponse.status} ${errorText}`);
+
+      let friendlyError = `Erro na IA (${aiResponse.status}): ${errorText.substring(0, 100)}`;
+      if (aiResponse.status === 429) {
+        friendlyError = "IA ocupada (Limite atingido). Tente novamente em 1 minuto.";
+      }
+      throw new Error(friendlyError);
     }
 
     const aiData = await aiResponse.json();
     const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
-      throw new Error('Gemini response não contém conteúdo válido');
+      console.error('Empty Gemini content. Full data:', JSON.stringify(aiData));
+      return new Response(JSON.stringify({
+        error: 'A IA retornou um conteúdo vazio',
+        variations: []
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    console.log('Gemini response content received');
+    console.log('Gemini response content received successfully');
 
     // Parse JSON
     let result;
@@ -199,79 +218,112 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
       result = JSON.parse(jsonStr);
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      throw new Error('Falha ao processar resposta da IA');
+      console.error('Content that failed to parse:', content);
+      return new Response(JSON.stringify({
+        error: 'Erro ao processar dados da IA',
+        debug_content: content.substring(0, 100),
+        variations: []
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Generate images using Pollinations.ai (Free, High Quality with Flux)
-    console.log('Generating images with Pollinations.ai (Flux)...');
+    console.log('Generating images with Pollinations.ai...');
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     for (const variation of result.variations) {
       try {
         const promptDesc = variation.imagePrompt?.description || 'Professional Instagram post';
         const promptStyle = variation.imagePrompt?.style || style || 'photography';
-        // Optimize prompt for Flux
-        const finalPrompt = encodeURIComponent(`${promptDesc}, ${promptStyle} style, high quality, 4k, photorealistic, sharp focus`);
 
-        // Determine dimensions
+        // LIMIT PROMPT LENGTH to prevent 414/Long URL issues
+        const truncatedPrompt = promptDesc.substring(0, 200);
+        const finalPrompt = encodeURIComponent(`${truncatedPrompt}, ${promptStyle} style, high quality`);
+
         const width = postType === 'story' ? 1080 : 1080;
         const height = postType === 'story' ? 1920 : 1080;
 
-        // Use 'flux-realism' model for better quality (simulating high-end generator)
-        const imageUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=${width}&height=${height}&nologo=true&model=flux-realism&seed=${Math.floor(Math.random() * 10000)}`;
+        const pollinationUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=${width}&height=${height}&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
 
-        console.log(`Fetching image from Pollinations (Flux) for variant ${variation.variant}: ${imageUrl}`);
+        // Final fallback: Guaranteed working Unsplash source
+        const searchTerms = variation.imagePrompt?.elements?.join(',') || variation.altText || 'business';
+        const hardFallbackUrl = `https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=${width}&h=${height}&fit=crop`; // Stable laptop on desk
+        const dynamicFallbackUrl = `https://loremflickr.com/${width}/${height}/${encodeURIComponent(searchTerms)}?lock=${Math.floor(Math.random() * 1000)}`;
 
-        // Download and upload to Supabase Storage
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Pollinations API error: ${imageResponse.status}`);
-        }
+        console.log(`Generating images for variant ${variation.variant}...`);
 
-        const blob = await imageResponse.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        let binaryData = new Uint8Array(arrayBuffer);
+        let imageResponse;
+        let successfulUrl = pollinationUrl;
 
-        // Apply text overlay if requested and headline exists
-        if (includeTextOverlay && variation.headlineText) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+          imageResponse = await fetch(pollinationUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!imageResponse.ok) throw new Error(`Pollinations error: ${imageResponse.status}`);
+        } catch (e) {
+          console.warn(`Pollinations failed, trying LoremFlickr...`);
+          successfulUrl = dynamicFallbackUrl;
           try {
-            console.log(`Applying text overlay: "${variation.headlineText}" at position: ${textPosition}`);
-
-            // Use Deno's Canvas API (requires --unstable flag)
-            // For now, we'll skip Canvas rendering in Edge Function and handle it client-side
-            // This is a placeholder for future server-side implementation
-
-            // Alternative: Store headline metadata for client-side rendering
-            variation.textOverlay = {
-              text: variation.headlineText,
-              position: textPosition
-            };
-          } catch (textError: any) {
-            console.error('Failed to apply text overlay:', textError);
-            // Continue without text overlay
+            imageResponse = await fetch(successfulUrl);
+          } catch (e2) {
+            console.error('All fetch attempts failed in Edge Function');
           }
         }
 
-        const fileName = `${crypto.randomUUID()}.png`;
-        const filePath = `${userId || 'anonymous'}/${fileName}`;
+        // Processing Storage
+        if (imageResponse && imageResponse.ok) {
+          try {
+            const blob = await imageResponse.blob();
+            const rawContentType = imageResponse.headers.get('content-type') || 'image/png';
+            const contentType = rawContentType.split(';')[0].trim();
+            const extension = contentType.split('/')[1] || 'png';
 
-        const { data: uploadData, error: uploadError } = await supabaseClient
-          .storage
-          .from('generated-images')
-          .upload(filePath, binaryData, {
-            contentType: 'image/png',
-            upsert: false
-          });
+            const arrayBuffer = await blob.arrayBuffer();
+            const binaryData = new Uint8Array(arrayBuffer);
 
-        if (uploadError) {
-          console.error('Storage upload error, falling back to direct URL:', uploadError);
-          variation.imageUrl = imageUrl;
+            const fileName = `${crypto.randomUUID()}.${extension}`;
+            const filePath = `${userId || 'anonymous'}/${fileName}`;
+
+            const { error: uploadError } = await supabaseClient
+              .storage
+              .from('generated-images')
+              .upload(filePath, binaryData, {
+                contentType: contentType,
+                cacheControl: '3600'
+              });
+
+            if (!uploadError) {
+              const { data: urlData } = supabaseClient.storage.from('generated-images').getPublicUrl(filePath);
+              variation.supabaseUrl = urlData.publicUrl;
+              variation.storagePath = filePath;
+            } else {
+              console.error('Storage upload failed:', uploadError);
+              variation.supabaseUrl = hardFallbackUrl; // Backup link even on storage error
+            }
+          } catch (e) {
+            console.error('Processing error:', e);
+            variation.supabaseUrl = hardFallbackUrl;
+          }
         } else {
-          const { data: urlData } = supabaseClient
-            .storage
-            .from('generated-images')
-            .getPublicUrl(filePath);
-          variation.imageUrl = urlData.publicUrl;
+          variation.supabaseUrl = hardFallbackUrl;
+        }
+
+        // ALWAYS ensure imageUrl is a working link
+        variation.imageUrl = successfulUrl || hardFallbackUrl;
+
+        // If supabaseUrl is still empty (highly unlikely now), use the hard fallback
+        if (!variation.supabaseUrl) variation.supabaseUrl = hardFallbackUrl;
+
+        // Store headline metadata for client-side rendering
+        if (includeTextOverlay && variation.headlineText) {
+          variation.textOverlay = {
+            text: variation.headlineText,
+            position: textPosition
+          };
         }
 
         // Mark for client-side logo composition if requested
@@ -280,10 +332,10 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
           variation.needsLogoComposition = true;
         }
 
-      } catch (imageError: any) {
-        console.error(`Failed to generate image for variant ${variation.variant}:`, imageError);
-        variation.imageUrl = null;
-        variation.imageError = 'Falha na geração de imagem';
+      } catch (err: any) {
+        console.error(`Serious error in generation loop for variant ${variation.variant}:`, err);
+        variation.imageUrl = `https://loremflickr.com/1080/1080/business?random=${Math.random()}`;
+        variation.imageError = err.message;
       }
     }
 

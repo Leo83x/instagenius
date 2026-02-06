@@ -54,16 +54,41 @@ export interface EngagementMetrics {
 }
 
 export interface PostVariation {
-    id: string;
+    id?: string;
+    variant: string;
     caption: string;
     tone: string;
     hashtags: string[];
+    imageUrl?: string;
+    supabaseUrl?: string;
+    storagePath?: string;
+    imagePrompt: {
+        description: string;
+        colors: string[];
+        style: string;
+        aspectRatio: string;
+        elements: string[];
+        mood: string;
+    };
+    altText: string;
+    rationale: string;
+    headlineText?: string;
+    textOverlay?: {
+        text: string;
+        position: 'top' | 'center' | 'bottom';
+    };
+    imageError?: string | null;
 }
 
 export interface GeneratedPost {
     variations: PostVariation[];
-    suggested_image_prompt?: string;
-    best_time_to_post?: string;
+    metadata: {
+        objective: string;
+        tone: string;
+        postType: string;
+        requiresReview: boolean;
+        reviewReason: string | null;
+    };
 }
 
 // Component Props Types

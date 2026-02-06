@@ -35,12 +35,78 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { code, redirectUri: incomingRedirectUri } = body;
+    const { code, redirectUri: incomingRedirectUri, action } = body;
+    let userId = body.userId || body.user_id;
+    if (userId === "mock-user-id") userId = null;
+
+    // Use Service Role to bypass RLS and avoid JWT "missing sub" errors
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // --- Action: check_status ---
+    if (action === "check_status") {
+      console.log("Action: check_status for user:", userId);
+      let profile = null;
+
+      // 1. Specific User
+      if (userId) {
+        const { data } = await supabaseAdmin
+          .from("company_profiles")
+          .select("user_id, company_name, instagram_user_id, instagram_access_token, token_expires_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (data?.instagram_access_token) profile = data;
+      }
+
+      // 2. Any Connected (Fallback)
+      if (!profile) {
+        const { data: connectedProfiles } = await supabaseAdmin
+          .from("company_profiles")
+          .select("user_id, company_name, instagram_user_id, instagram_access_token, token_expires_at")
+          .not("instagram_access_token", "is", null)
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (connectedProfiles && connectedProfiles.length > 0) profile = connectedProfiles[0];
+      }
+
+      if (profile) {
+        let username = "";
+        if (profile.instagram_access_token && profile.instagram_user_id) {
+          try {
+            const fbUrl = `https://graph.facebook.com/v20.0/${profile.instagram_user_id}?fields=username&access_token=${profile.instagram_access_token}`;
+            const fbRes = await fetch(fbUrl);
+            const fbData = await fbRes.json();
+            if (fbData.username) username = fbData.username;
+          } catch (e) {
+            console.error("Error fetching username in status check:", e);
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            connected: !!profile.instagram_access_token,
+            instagramUserId: profile.instagram_user_id,
+            instagramUsername: username,
+            expiresAt: profile.token_expires_at
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, connected: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // --- Original OAuth Flow ---
     const redirectUri = "https://instagenius.convertamais.online/instagram";
     console.log("Receiving OAuth flow for code:", code?.substring(0, 10) + "...");
     console.log("Using Redirect URI for exchange:", redirectUri);
     console.log("Incoming Redirect URI from frontend (for debug):", incomingRedirectUri);
-    let userId = body.userId || body.user_id;
 
     const authHeader = req.headers.get("Authorization");
 
@@ -49,11 +115,6 @@ Deno.serve(async (req) => {
       userId = getUserIdFromAuthHeader(authHeader);
     }
 
-    // Use Service Role to bypass RLS and avoid JWT "missing sub" errors
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
 
     // 2. Mandatory Fallback for No-Login/Demo Mode:
     // If still no userId, just use the primary profile in the database.

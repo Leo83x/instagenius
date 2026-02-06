@@ -8,6 +8,7 @@ import { ArrowLeft, Instagram, CheckCircle2, XCircle, AlertCircle, RefreshCw } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Header } from "@/components/Header";
 
 export default function InstagramIntegration() {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ export default function InstagramIntegration() {
             body: {
               code,
               redirectUri,
-              userId: user?.id || "mock-user-id"
+              userId: user?.id || null
             },
             headers: {}, // This prevents the client from automatically adding the Auth header which causes the "missing sub claim" error
           }
@@ -102,39 +103,31 @@ export default function InstagramIntegration() {
 
   const checkConnection = async () => {
     try {
+      console.log("Checking connection status via direct DB query (RLS enabled)...");
       const { data: authData } = await supabase.auth.getUser();
-      let user = authData?.user;
+      const user = authData?.user;
 
-      let query = supabase.from("company_profiles").select("instagram_access_token, instagram_user_id, token_expires_at");
-
-      if (user) {
-        query = query.eq("user_id", user.id);
-      } else {
-        // Use the demo mode mock ID for consistency
-        console.log("No authenticated user, using demo mode mock-user-id fallback...");
-        query = query.eq("user_id", "mock-user-id");
+      if (!user) {
+        console.log("No authenticated user found. Waiting for session...");
+        return;
       }
 
-      const { data } = await query.maybeSingle();
+      const { data, error } = await supabase
+        .from("company_profiles")
+        .select("instagram_access_token, instagram_user_id, token_expires_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      // If mock-user-id didn't yield a profile, try taking the first one (Marco Lopez)
-      if (!data) {
-        console.log("Mock ID not found, trying primary profile fallback...");
-        const { data: firstProfile } = await supabase.from("company_profiles").select("instagram_access_token, instagram_user_id, token_expires_at").limit(1).maybeSingle();
-        if (firstProfile) {
-          setIsConnected(!!(firstProfile.instagram_access_token && firstProfile.instagram_user_id));
-          setInstagramUserId(firstProfile.instagram_user_id || "");
-          setTokenExpiresAt(firstProfile.token_expires_at || null);
-          // ... rest of the logic follows
-        }
-      }
+      if (error) throw error;
+
+      console.log("Connection data from DB:", data);
 
       if (data?.instagram_access_token && data?.instagram_user_id) {
         setIsConnected(true);
         setInstagramUserId(data.instagram_user_id);
         setTokenExpiresAt(data.token_expires_at);
 
-        // Fetch username from Instagram API
+        // Fetch username from Instagram API to show on UI
         try {
           const response = await fetch(
             `https://graph.facebook.com/v20.0/${data.instagram_user_id}?fields=username&access_token=${data.instagram_access_token}`
@@ -144,17 +137,21 @@ export default function InstagramIntegration() {
             setInstagramUsername(userData.username);
           }
         } catch (err) {
-          console.error("Error fetching username:", err);
+          console.error("Error fetching username from Instagram:", err);
         }
+      } else {
+        setIsConnected(false);
       }
     } catch (error) {
       console.error("Error checking connection:", error);
+      // Fallback: If function fails, try client-side check (though less reliable due to RLS)
+      // verifyClientSideConnection();
     }
   };
 
   const startOAuthFlow = () => {
     // REAL FLOW with App ID
-    const appId = "868170412774457"; // Forced for debug
+    const appId = "1590532242091370"; // New Business App (Dev Mode)
 
     if (appId) {
       const redirectUri = "https://instagenius.convertamais.online/instagram";
@@ -358,6 +355,7 @@ export default function InstagramIntegration() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
       <div className="container py-8 max-w-2xl">
         <Button
           variant="ghost"
@@ -681,6 +679,6 @@ export default function InstagramIntegration() {
           )}
         </Card>
       </div>
-    </div>
+    </div >
   );
 }

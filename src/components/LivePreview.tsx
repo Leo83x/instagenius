@@ -2,12 +2,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Instagram, Heart, MessageCircle, Send, Bookmark } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface LivePreviewProps {
     caption: string;
     hashtags?: string[];
     imageUrl?: string;
+    supabaseUrl?: string; // NEW
     companyName?: string;
     companyLogo?: string;
     postType?: "feed" | "story" | "reel";
@@ -17,6 +18,7 @@ export function LivePreview({
     caption,
     hashtags = [],
     imageUrl,
+    supabaseUrl,
     companyName = "Sua Empresa",
     companyLogo,
     postType = "feed"
@@ -54,6 +56,28 @@ export function LivePreview({
         return debouncedCaption + hashtagsText;
     }, [debouncedCaption, debouncedHashtags]);
 
+    const [activeImageUrl, setActiveImageUrl] = useMemo(() => {
+        // We use a simple local state for the fallback
+        return [imageUrl, supabaseUrl];
+    }, [imageUrl, supabaseUrl]);
+
+    const [currentImage, setCurrentImage] = useState<string | undefined>(imageUrl);
+
+    useEffect(() => {
+        setCurrentImage(imageUrl);
+    }, [imageUrl]);
+
+    const handleImageError = () => {
+        if (currentImage === imageUrl && supabaseUrl) {
+            console.warn("LivePreview: Try fallback 1 (Supabase)...");
+            setCurrentImage(supabaseUrl);
+        } else if (currentImage !== `https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80`) {
+            console.warn("LivePreview: Try fallback 2 (Emergency Unsplash)...");
+            const keywords = encodeURIComponent(caption || "business technology");
+            setCurrentImage(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+        }
+    };
+
     return (
         <Card className="p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -86,12 +110,13 @@ export function LivePreview({
                 </div>
 
                 {/* Imagem do post - aspect ratio dinâmico */}
-                {imageUrl ? (
+                {currentImage ? (
                     <div className={`${aspectRatio} bg-gray-100 dark:bg-gray-800`}>
                         <img
-                            src={imageUrl}
+                            src={currentImage}
                             alt="Preview"
                             className="w-full h-full object-cover"
+                            onError={handleImageError}
                         />
                     </div>
                 ) : (
