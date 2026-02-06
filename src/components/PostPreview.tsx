@@ -26,29 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { composeLogoOnImage, composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
 import { TextOverlayEditor, type TextStyleConfig } from "./TextOverlayEditor";
 
-interface PostVariation {
-  variant: string;
-  caption: string;
-  hashtags: string[];
-  headlineText?: string;  // NEW - AI-generated headline for text overlay
-  imagePrompt: {
-    description: string;
-    colors: string[];
-    style: string;
-    aspectRatio: string;
-    elements: string[];
-    mood: string;
-  };
-  altText: string;
-  rationale: string;
-  imageUrl?: string;
-  supabaseUrl?: string; // NEW - Fallback URL
-  imageError?: string;
-  textOverlay?: {
-    text: string;
-    position: 'top' | 'center' | 'bottom';
-  };
-}
+import { PostVariation, GeneratedPost } from "@/types";
 
 interface PostPreviewProps {
   variations?: PostVariation[];
@@ -154,15 +132,15 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
 
   const handleImageError = () => {
     if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
-      console.warn("PostPreview: Try fallback 1 (Supabase)...");
+      console.warn("PostPreview: Falling back to Supabase...");
       setActiveImageUrl(currentPost.supabaseUrl);
-    } else if (activeImageUrl !== `https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80`) {
-      console.warn("PostPreview: Try fallback 2 (Emergency Unsplash)...");
-      // Use Unsplash Source based on keywords
-      const keywords = encodeURIComponent(currentPost.altText || "business technology");
-      setActiveImageUrl(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+    } else if (activeImageUrl && !activeImageUrl.includes('images.unsplash.com')) {
+      console.warn("PostPreview: Falling back to Emergency Unsplash...");
+      // Using a high-quality, stable Unsplash image based on the post context
+      const query = encodeURIComponent(currentPost.altText || "marketing,business");
+      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
     } else {
-      console.error("PostPreview: All image fallbacks failed.");
+      console.error("PostPreview: All image fallbacks failed for variation", displayPost.variant);
     }
   };
 

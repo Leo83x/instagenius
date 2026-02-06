@@ -56,11 +56,6 @@ export function LivePreview({
         return debouncedCaption + hashtagsText;
     }, [debouncedCaption, debouncedHashtags]);
 
-    const [activeImageUrl, setActiveImageUrl] = useMemo(() => {
-        // We use a simple local state for the fallback
-        return [imageUrl, supabaseUrl];
-    }, [imageUrl, supabaseUrl]);
-
     const [currentImage, setCurrentImage] = useState<string | undefined>(imageUrl);
 
     useEffect(() => {
@@ -68,13 +63,15 @@ export function LivePreview({
     }, [imageUrl]);
 
     const handleImageError = () => {
-        if (currentImage === imageUrl && supabaseUrl) {
-            console.warn("LivePreview: Try fallback 1 (Supabase)...");
+        if (currentImage === imageUrl && supabaseUrl && supabaseUrl !== imageUrl) {
+            console.warn("LivePreview: Falling back to Supabase...");
             setCurrentImage(supabaseUrl);
-        } else if (currentImage !== `https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80`) {
-            console.warn("LivePreview: Try fallback 2 (Emergency Unsplash)...");
-            const keywords = encodeURIComponent(caption || "business technology");
-            setCurrentImage(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+        } else if (currentImage && !currentImage.includes('images.unsplash.com')) {
+            console.warn("LivePreview: Falling back to Emergency Unsplash...");
+            const query = encodeURIComponent(caption || "marketing");
+            setCurrentImage(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
+        } else {
+            console.error("LivePreview: All image fallbacks failed.");
         }
     };
 

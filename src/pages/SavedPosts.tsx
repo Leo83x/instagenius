@@ -273,14 +273,15 @@ function PostImage({ src, alt }: { src: string; alt: string }) {
   }, [src]);
 
   const handleError = () => {
-    if (currentSrc === src && !src.includes('source.unsplash.com')) {
+    if (currentSrc === src && !currentSrc.includes('images.unsplash.com')) {
       console.warn("SavedPosts: Image load failed, trying emergency fallback...");
-      const keywords = encodeURIComponent(alt || "business technology");
-      setCurrentSrc(`https://source.unsplash.com/featured/1080x1080?${keywords}`);
+      const query = encodeURIComponent(alt || "business,marketing");
+      setCurrentSrc(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
     } else {
       console.error("SavedPosts: All image fallbacks failed.");
     }
   };
+ kitchen sink
 
   return (
     <img
