@@ -48,6 +48,26 @@ serve(async (req) => {
 
     console.log('Generating post with params:', { objective, theme, tone, style, postType });
 
+    // Verificar e decrementar créditos de IA
+    if (userId) {
+      const { data: creditResult, error: creditError } = await supabase.rpc('decrement_ai_credits', {
+        user_uuid: userId,
+        amount: 1
+      });
+
+      if (creditError) {
+        console.error('Error checking credits:', creditError);
+      } else if (creditResult && creditResult.length > 0 && !creditResult[0].success) {
+        return new Response(JSON.stringify({ 
+          error: 'Créditos de IA insuficientes. Faça upgrade do seu plano.',
+          creditsRemaining: creditResult[0].remaining 
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Validação de compliance e segurança
     const checkCompliance = (text: string): { safe: boolean; reason?: string } => {
       const healthClaims = /garant|cura|milagre|100%|promessa/gi;

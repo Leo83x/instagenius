@@ -424,7 +424,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_ai_credits: {
+        Args: { amount: number; new_total?: number; user_uuid: string }
+        Returns: {
+          remaining: number
+          success: boolean
+          total: number
+        }[]
+      }
+      decrement_ai_credits: {
+        Args: { amount?: number; user_uuid: string }
+        Returns: {
+          message: string
+          remaining: number
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
