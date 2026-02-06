@@ -115,13 +115,9 @@ export default function InstagramIntegration() {
   };
 
   const startOAuthFlow = () => {
-    const appId = import.meta.env.VITE_FACEBOOK_APP_ID;
-    if (!appId) {
-      toast.error("Configuração OAuth não encontrada. Entre em contato com o suporte.");
-      return;
-    }
+    const appId = "1590532242091370";
 
-    const redirectUri = `${window.location.origin}${window.location.pathname}`;
+    const redirectUri = `${window.location.origin}/instagram`;
     const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management";
     
     const oauthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
