@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, Crown, Zap, Sparkles, CreditCard } from "lucide-react";
+import { Check, Crown, Zap, Sparkles, CreditCard, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Subscription() {
@@ -31,17 +31,79 @@ export default function Subscription() {
       setProfile(profileData);
 
       // Load subscription info
-      const { data: subData } = await supabase
+      let { data: subData } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
+
+      // Se não existir subscription, criar uma com plano gratuito
+      if (!subData) {
+        const { data: newSub, error } = await supabase
+          .from("subscriptions")
+          .insert([{ 
+            user_id: user.id, 
+            plan_type: 'free', 
+            status: 'active' 
+          }])
+          .select()
+          .single();
+        
+        if (!error) {
+          subData = newSub;
+        }
+      }
 
       setSubscription(subData);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePlan = async (planName: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Definir créditos por plano
+      const creditsByPlan: Record<string, { total: number; remaining: number }> = {
+        'Gratuito': { total: 100, remaining: 100 },
+        'Pro': { total: 500, remaining: 500 },
+        'Business': { total: 2000, remaining: 2000 }
+      };
+
+      const planConfig = creditsByPlan[planName] || creditsByPlan['Gratuito'];
+      const planType = planName.toLowerCase().replace('gratuito', 'free');
+
+      // Atualizar subscription
+      await supabase
+        .from("subscriptions")
+        .update({ 
+          plan_type: planType,
+          current_period_start: new Date().toISOString(),
+          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .eq("user_id", user.id);
+
+      // Atualizar créditos no perfil
+      if (profile) {
+        await supabase
+          .from("company_profiles")
+          .update({ 
+            ai_credits_total: planConfig.total,
+            ai_credits_remaining: planConfig.remaining,
+            ai_credits_last_reset: new Date().toISOString()
+          })
+          .eq("user_id", user.id);
+      }
+
+      toast.success(`Plano alterado para ${planName}!`);
+      loadData();
+    } catch (error) {
+      console.error("Error changing plan:", error);
+      toast.error("Erro ao alterar plano");
     }
   };
 
@@ -52,11 +114,12 @@ export default function Subscription() {
       period: "/mês",
       icon: Sparkles,
       gradient: "from-gray-500 to-gray-600",
+      planType: "free",
       features: [
         "100 créditos IA por mês",
         "5 posts por dia",
         "Analytics básicos",
-        "Hashtags em alta",
+        "Sugestões de temas",
       ],
       current: subscription?.plan_type === "free" || !subscription,
     },
@@ -66,6 +129,7 @@ export default function Subscription() {
       period: "/mês",
       icon: Zap,
       gradient: "from-purple-500 to-pink-500",
+      planType: "pro",
       features: [
         "500 créditos IA por mês",
         "Posts ilimitados",
@@ -82,6 +146,7 @@ export default function Subscription() {
       period: "/mês",
       icon: Crown,
       gradient: "from-orange-500 to-yellow-500",
+      planType: "business",
       features: [
         "2000 créditos IA por mês",
         "Posts ilimitados",
@@ -93,10 +158,6 @@ export default function Subscription() {
       current: subscription?.plan_type === "business",
     },
   ];
-
-  const handleUpgrade = (planName: string) => {
-    toast.info("Integração com Stripe em desenvolvimento");
-  };
 
   if (loading) {
     return (
@@ -203,10 +264,10 @@ export default function Subscription() {
                   <Button
                     className="w-full"
                     variant={plan.current ? "outline" : "default"}
-                    onClick={() => handleUpgrade(plan.name)}
+                    onClick={() => handleChangePlan(plan.name)}
                     disabled={plan.current}
                   >
-                    {plan.current ? "Plano Atual" : "Fazer Upgrade"}
+                    {plan.current ? "Plano Atual" : "Selecionar Plano"}
                   </Button>
                 </div>
               </Card>
