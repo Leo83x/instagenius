@@ -25,8 +25,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { composeLogoOnImage, composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
 import { TextOverlayEditor, type TextStyleConfig } from "./TextOverlayEditor";
-
-import { PostVariation, GeneratedPost } from "@/types";
+import { PostVariation } from "@/types";
 
 interface PostPreviewProps {
   variations?: PostVariation[];
@@ -43,7 +42,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const [companyName, setCompanyName] = useState("sua_empresa");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  // Estados para edição
   const [editedCaption, setEditedCaption] = useState("");
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedImageUrl, setEditedImageUrl] = useState("");
@@ -82,7 +80,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
 
   const currentPost = variations[currentVariation];
 
-  // Sincronizar estados de edição quando mudar de variação
   const handleVariationChange = (newIndex: number) => {
     setCurrentVariation(newIndex);
     setIsEditing(false);
@@ -101,7 +98,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   };
 
   const saveEdits = () => {
-    // Atualizar a variação atual com os valores editados
     variations[currentVariation] = {
       ...currentPost,
       caption: editedCaption,
@@ -119,10 +115,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
     imageUrl: editedImageUrl || currentPost.imageUrl,
     headlineText: editedHeadlineText || currentPost.headlineText
-  } : {
-    ...currentPost,
-    // Ensure we have a local version that we can mutate if fallback is needed
-  };
+  } : currentPost;
 
   const [activeImageUrl, setActiveImageUrl] = useState<string | undefined>(undefined);
 
@@ -133,7 +126,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const handleImageError = () => {
     console.warn("Image load error detected for variant", displayPost.variant);
 
-    // Fallback sequence: Original -> Supabase -> Emergency Unsplash -> LoremFlickr -> Placeholder
     if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
       console.log("Switching to Fallback 1: Supabase Storage");
       setActiveImageUrl(currentPost.supabaseUrl);
@@ -152,7 +144,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   };
 
   const handleNextImage = () => {
-    // Manually trigger the next fallback source
     if (!activeImageUrl || activeImageUrl === displayPost.imageUrl) {
       if (currentPost.supabaseUrl) setActiveImageUrl(currentPost.supabaseUrl);
       else {
@@ -166,34 +157,21 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
       setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
     } else {
-      setActiveImageUrl(displayPost.imageUrl); // Reset to original to try again
+      setActiveImageUrl(displayPost.imageUrl);
     }
     toast.info("Tentando outra fonte de imagem...");
   };
 
   const handleExport = async () => {
     if (!displayPost) return;
-
     setExporting(true);
     try {
       const content = `
 VARIAÇÃO: ${displayPost.variant}
-
-LEGENDA:
-${displayPost.caption}
-
-HASHTAGS:
-${displayPost.hashtags.join(" ")}
-
-DESCRIÇÃO DA IMAGEM:
-${displayPost.imagePrompt.description}
-
-TEXTO ALTERNATIVO:
-${displayPost.altText}
-
-ESTRATÉGIA:
-${displayPost.rationale}
-      `.trim();
+LEGENDA: ${displayPost.caption}
+HASHTAGS: ${displayPost.hashtags.join(" ")}
+ESTRATÉGIA: ${displayPost.rationale}
+`.trim();
 
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -205,19 +183,18 @@ ${displayPost.rationale}
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      if (displayPost.imageUrl) {
-        const response = await fetch(displayPost.imageUrl);
+      if (activeImageUrl) {
+        const response = await fetch(activeImageUrl);
         const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
+        const imgUrl = URL.createObjectURL(imageBlob);
         const imgLink = document.createElement("a");
-        imgLink.href = imageUrl;
+        imgLink.href = imgUrl;
         imgLink.download = `imagem-variacao-${displayPost.variant}.jpg`;
         document.body.appendChild(imgLink);
         imgLink.click();
         document.body.removeChild(imgLink);
-        URL.revokeObjectURL(imageUrl);
+        URL.revokeObjectURL(imgUrl);
       }
-
       toast.success("Post and image exported successfully!");
     } catch (error) {
       console.error("Error exporting:", error);
@@ -229,37 +206,15 @@ ${displayPost.rationale}
 
   const handleApplyLogo = async () => {
     if (!currentPost.imageUrl || !logoUrl) return;
-
     setIsComposing(true);
     toast.info("Applying logo to image...");
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // 1. Compose logo
-      const composedDataUrl = await composeLogoOnImage(
-        currentPost.imageUrl,
-        logoUrl,
-        'bottom-right',
-        0.15 // 15% size
-      );
-
-      // 2. Upload new image
-      const newImageUrl = await uploadComposedImage(
-        composedDataUrl,
-        user.id,
-        supabase
-      );
-
-      // 3. Update current variation state locally
-      // Note: In a real app we might want to update the parent state or refetch
-      // For now we mutate the object in memory to reflect change immediately
+      if (!user) throw new Error("User not authenticated");
+      const composedDataUrl = await composeLogoOnImage(currentPost.imageUrl, logoUrl, 'bottom-right', 0.15);
+      const newImageUrl = await uploadComposedImage(composedDataUrl, user.id, supabase);
       currentPost.imageUrl = newImageUrl;
-
-      // Force re-render
-      setCurrentVariation(prev => prev); // This might not be enough if object ref is same
-
+      setActiveImageUrl(newImageUrl);
       toast.success("Logo applied successfully!");
     } catch (error) {
       console.error("Error applying logo:", error);
@@ -271,43 +226,22 @@ ${displayPost.rationale}
 
   const handleApplyTextWithConfig = async (config: TextStyleConfig) => {
     if (!currentPost.imageUrl) return;
-
     setShowTextEditor(false);
     setIsApplyingText(true);
     toast.info("Aplicando texto na imagem...");
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // 1. Compose text on image with custom config (including edited text)
-      const composedDataUrl = await composeTextOnImage(
-        currentPost.imageUrl,
-        config.text, // Use edited text from config
-        config.position,
-        {
-          color: config.color,
-          strokeColor: config.strokeColor,
-          fontFamily: config.fontFamily,
-          fontSize: config.fontSize
-        }
-      );
-
-      // 2. Upload new image
-      const newImageUrl = await uploadComposedImage(
-        composedDataUrl,
-        user.id,
-        supabase
-      );
-
-      // 3. Update current variation state locally
+      if (!user) throw new Error("User not authenticated");
+      const composedDataUrl = await composeTextOnImage(currentPost.imageUrl, config.text, config.position, {
+        color: config.color,
+        strokeColor: config.strokeColor,
+        fontFamily: config.fontFamily,
+        fontSize: config.fontSize
+      });
+      const newImageUrl = await uploadComposedImage(composedDataUrl, user.id, supabase);
       currentPost.imageUrl = newImageUrl;
-      // Mark that text has been applied
+      setActiveImageUrl(newImageUrl);
       currentPost.textOverlay = undefined;
-
-      // Force re-render
-      setCurrentVariation(prev => prev);
-
       toast.success("Texto aplicado com sucesso!");
     } catch (error) {
       console.error("Erro ao aplicar texto:", error);
@@ -319,7 +253,6 @@ ${displayPost.rationale}
 
   const handleSaveToDatabase = async () => {
     if (!displayPost) return;
-
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -327,24 +260,21 @@ ${displayPost.rationale}
         toast.error("Você precisa estar logado");
         return;
       }
-
       const { error } = await supabase.from("generated_posts").insert({
         user_id: user.id,
         variant: displayPost.variant,
-        objective: "engagement", // Original intent
+        objective: "engagement",
         theme: displayPost.caption.substring(0, 100),
         post_type: "feed",
         caption: displayPost.caption,
         hashtags: displayPost.hashtags,
-        image_prompt: displayPost.imagePrompt.description,
+        image_prompt: displayPost.imagePrompt?.description || "",
         image_url: activeImageUrl || displayPost.imageUrl || null,
-        alt_text: displayPost.altText,
-        rationale: displayPost.rationale,
+        alt_text: displayPost.altText || "",
+        rationale: displayPost.rationale || "",
         status: "draft"
       });
-
       if (error) throw error;
-
       toast.success("Post salvo com sucesso!");
     } catch (error: any) {
       console.error("Error saving post:", error);
@@ -386,7 +316,7 @@ ${displayPost.rationale}
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="bg-card border rounded-lg overflow-hidden">
+            <div className="bg-card border rounded-lg overflow-hidden relative">
               <div className="flex items-center gap-3 p-3 border-b">
                 {logoUrl ? (
                   <img src={logoUrl} alt={companyName} className="h-8 w-8 rounded-full object-cover" />
@@ -403,7 +333,7 @@ ${displayPost.rationale}
                     alt={displayPost.altText}
                     className="w-full h-full object-cover transition-opacity duration-300"
                     onError={handleImageError}
-                    key={activeImageUrl} // Force re-render on change
+                    key={activeImageUrl}
                   />
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
@@ -433,13 +363,6 @@ ${displayPost.rationale}
                   <span className="whitespace-pre-wrap">{displayPost.caption}</span>
                 </div>
               </div>
-
-              {/* Logo Overlay - Visual Fallback */}
-              {logoUrl && companyName && (
-                <div className="absolute bottom-4 right-4 w-[15%] max-w-[80px] z-10 pointer-events-none drop-shadow-md">
-                  {/* Overlay omitted as per new logic, button is preferred */}
-                </div>
-              )}
             </div>
           </div>
 
@@ -512,11 +435,12 @@ ${displayPost.rationale}
                 )}
               </div>
             ) : (
-                <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-indigo-50/20"
-                    onClick={handleNextImage}
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-indigo-50/20"
+                  onClick={handleNextImage}
                 >
                   <ImagePlus className="h-4 w-4" />
                   Trocar Fonte da Imagem (Fallback)
@@ -534,10 +458,10 @@ ${displayPost.rationale}
                 <div>
                   <h4 className="font-semibold mb-2">Image Prompt</h4>
                   <div className="space-y-2">
-                    <p className="text-sm">{displayPost.imagePrompt.description}</p>
+                    <p className="text-sm">{displayPost.imagePrompt?.description}</p>
                     <div className="flex gap-2 flex-wrap">
-                      <Badge variant="secondary">Style: {displayPost.imagePrompt.style}</Badge>
-                      <Badge variant="secondary">Mood: {displayPost.imagePrompt.mood}</Badge>
+                      <Badge variant="secondary">Style: {displayPost.imagePrompt?.style}</Badge>
+                      <Badge variant="secondary">Mood: {displayPost.imagePrompt?.mood}</Badge>
                     </div>
                   </div>
                 </div>
@@ -552,9 +476,9 @@ ${displayPost.rationale}
                 <Separator />
 
                 <div>
-                  <h4 className="font-semibold mb-2">Hashtags ({displayPost.hashtags.length})</h4>
+                  <h4 className="font-semibold mb-2">Hashtags ({displayPost.hashtags?.length || 0})</h4>
                   <div className="flex flex-wrap gap-2">
-                    {displayPost.hashtags.map((tag, index) => (
+                    {displayPost.hashtags?.map((tag: string, index: number) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -563,125 +487,115 @@ ${displayPost.rationale}
                 </div>
 
                 {displayPost.headlineText && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="font-semibold mb-2">Text on Image</h4>
-                  <Badge variant="secondary" className="text-sm">
-                    {displayPost.headlineText}
-                  </Badge>
-                  {displayPost.textOverlay && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Position: {displayPost.textOverlay.position === 'top' ? 'Top' : displayPost.textOverlay.position === 'center' ? 'Center' : 'Bottom'}
-                    </p>
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="font-semibold mb-2">Text on Image</h4>
+                      <Badge variant="secondary" className="text-sm">
+                        {displayPost.headlineText}
+                      </Badge>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              {displayPost.headlineText && displayPost.imageUrl && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowTextEditor(true)}
+                  disabled={isApplyingText}
+                  className="flex-1 md:flex-none"
+                >
+                  {isApplyingText ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Edit Text
+                    </>
                   )}
-                </div>
-              </>
-            )}
-          </>
-            )}
+                </Button>
+              )}
 
-          <Separator />
+              {logoUrl && !displayPost.imageUrl?.includes('composed') && (
+                <Button
+                  variant="secondary"
+                  onClick={handleApplyLogo}
+                  disabled={isComposing}
+                  className="flex-1 md:flex-none"
+                >
+                  {isComposing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="mr-2 h-4 w-4" />
+                      Apply Logo
+                    </>
+                  )}
+                </Button>
+              )}
 
-          <div className="flex flex-wrap gap-2 w-full md:w-auto">
-            {/* Botão de Editar Texto */}
-            {displayPost.headlineText && displayPost.textOverlay && displayPost.imageUrl && (
               <Button
-                variant="secondary"
-                onClick={() => setShowTextEditor(true)}
-                disabled={isApplyingText}
+                variant="outline"
+                onClick={handleExport}
+                disabled={exporting}
                 className="flex-1 md:flex-none"
               >
-                {isApplyingText ? (
+                {exporting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Applying...
+                    Exporting...
                   </>
                 ) : (
                   <>
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Edit Text
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
                   </>
                 )}
               </Button>
-            )}
 
-            {/* Botão de Aplicar Logo (Manual) */}
-            {logoUrl && !displayPost.imageUrl?.includes('composed') && (
               <Button
-                variant="secondary"
-                onClick={handleApplyLogo}
-                disabled={isComposing}
-                className="flex-1 md:flex-none"
+                variant="default"
+                onClick={handleSaveToDatabase}
+                disabled={saving}
+                className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
               >
-                {isComposing ? (
+                {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Applying...
+                    Saving...
                   </>
                 ) : (
                   <>
-                    <ImagePlus className="mr-2 h-4 w-4" />
-                    Apply Logo
+                    <Save className="mr-2 h-4 w-4" />
+                    Save to Database
                   </>
                 )}
               </Button>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex-1 md:flex-none"
-            >
-              {exporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="default"
-              onClick={handleSaveToDatabase}
-              disabled={saving}
-              className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save to Database
-                </>
-              )}
-            </Button>
+            </div>
           </div>
         </div>
-    </div>
-      </Card >
+      </Card>
 
-    {/* Text Overlay Editor Modal */ }
-  {
-    showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
-      <TextOverlayEditor
-        imageUrl={displayPost.imageUrl}
-        text={displayPost.headlineText}
-        initialPosition={displayPost.textOverlay?.position || 'center'}
-        onApply={handleApplyTextWithConfig}
-        onCancel={() => setShowTextEditor(false)}
-      />
-    )
-  }
-    </div >
+      {showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
+        <TextOverlayEditor
+          imageUrl={displayPost.imageUrl}
+          text={displayPost.headlineText}
+          initialPosition={displayPost.textOverlay?.position || 'center'}
+          onApply={handleApplyTextWithConfig}
+          onCancel={() => setShowTextEditor(false)}
+        />
+      )}
+    </div>
   );
 }
