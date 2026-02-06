@@ -46,10 +46,15 @@ export default function InstagramIntegration() {
       try {
         const redirectUri = `${window.location.origin}${window.location.pathname}`;
         
+        // Get user ID to pass manually (avoids JWT conflicts)
+        const { data: { user } } = await supabase.auth.getUser();
+        
         const { data, error } = await supabase.functions.invoke(
           "facebook-oauth-callback",
           {
-            body: { code, redirectUri },
+            body: { code, redirectUri, userId: user?.id || null },
+            // CORREÇÃO CRÍTICA: headers vazios para evitar conflito de JWT
+            headers: {},
           }
         );
 
@@ -117,11 +122,11 @@ export default function InstagramIntegration() {
     }
 
     const redirectUri = `${window.location.origin}${window.location.pathname}`;
-    const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement";
+    const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management";
     
-    const oauthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
+    const oauthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&scope=${scope}&response_type=code`;
+    )}&scope=${scope}&response_type=code&auth_type=rerequest`;
 
     window.location.href = oauthUrl;
   };
