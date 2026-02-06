@@ -131,18 +131,46 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   }, [displayPost.imageUrl, currentVariation]);
 
   const handleImageError = () => {
+    console.warn("Image load error detected for variant", displayPost.variant);
+
+    // Fallback sequence: Original -> Supabase -> Emergency Unsplash -> LoremFlickr -> Placeholder
     if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
-      console.warn("PostPreview: Falling back to Supabase...");
+      console.log("Switching to Fallback 1: Supabase Storage");
       setActiveImageUrl(currentPost.supabaseUrl);
-    } else if (activeImageUrl && !activeImageUrl.includes('images.unsplash.com')) {
-      console.warn("PostPreview: Falling back to Emergency Unsplash...");
-      // Using a high-quality, stable Unsplash image based on the post context
+    } else if (!activeImageUrl?.includes('unsplash.com') && !activeImageUrl?.includes('loremflickr.com')) {
+      console.log("Switching to Fallback 2: Emergency Unsplash");
       const query = encodeURIComponent(currentPost.altText || "marketing,business");
-      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
-    } else {
-      console.error("PostPreview: All image fallbacks failed for variation", displayPost.variant);
+      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+    } else if (activeImageUrl?.includes('unsplash.com')) {
+      console.log("Switching to Fallback 3: LoremFlickr");
+      const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
+      setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
+    } else if (activeImageUrl?.includes('loremflickr.com')) {
+      console.log("Switching to Fallback 4: Final Placeholder");
+      setActiveImageUrl(`https://placehold.co/1080x1080/6366f1/ffffff?text=InstaGenius+Post`);
     }
   };
+
+  const handleNextImage = () => {
+    // Manually trigger the next fallback source
+    if (!activeImageUrl || activeImageUrl === displayPost.imageUrl) {
+      if (currentPost.supabaseUrl) setActiveImageUrl(currentPost.supabaseUrl);
+      else {
+        const query = encodeURIComponent(currentPost.altText || "marketing");
+        setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+      }
+    } else if (activeImageUrl?.includes('supabase.co')) {
+      const query = encodeURIComponent(currentPost.altText || "marketing");
+      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+    } else if (activeImageUrl?.includes('unsplash.com')) {
+      const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
+      setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
+    } else {
+      setActiveImageUrl(displayPost.imageUrl); // Reset to original to try again
+    }
+    toast.info("Tentando outra fonte de imagem...");
+  };
+ kitchen sink
 
   const handleExport = async () => {
     if (!displayPost) return;
@@ -374,8 +402,9 @@ ${displayPost.rationale}
                   <img
                     src={activeImageUrl}
                     alt={displayPost.altText}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-300"
                     onError={handleImageError}
+                    key={activeImageUrl} // Force re-render on change
                   />
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
@@ -484,7 +513,16 @@ ${displayPost.rationale}
                 )}
               </div>
             ) : (
-              <>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-indigo-50/20"
+                    onClick={handleNextImage}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Trocar Fonte da Imagem (Fallback)
+                </Button>
+
                 <div>
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
                     <Badge variant="outline">Strategic Analysis</Badge>
@@ -526,123 +564,125 @@ ${displayPost.rationale}
                 </div>
 
                 {displayPost.headlineText && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h4 className="font-semibold mb-2">Text on Image</h4>
-                      <Badge variant="secondary" className="text-sm">
-                        {displayPost.headlineText}
-                      </Badge>
-                      {displayPost.textOverlay && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Position: {displayPost.textOverlay.position === 'top' ? 'Top' : displayPost.textOverlay.position === 'center' ? 'Center' : 'Bottom'}
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
+              <>
+                <Separator />
+                <div>
+                  <h4 className="font-semibold mb-2">Text on Image</h4>
+                  <Badge variant="secondary" className="text-sm">
+                    {displayPost.headlineText}
+                  </Badge>
+                  {displayPost.textOverlay && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Position: {displayPost.textOverlay.position === 'top' ? 'Top' : displayPost.textOverlay.position === 'center' ? 'Center' : 'Bottom'}
+                    </p>
+                  )}
+                </div>
               </>
             )}
+          </>
+            )}
 
-            <Separator />
+          <Separator />
 
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              {/* Botão de Editar Texto */}
-              {displayPost.headlineText && displayPost.textOverlay && displayPost.imageUrl && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowTextEditor(true)}
-                  disabled={isApplyingText}
-                  className="flex-1 md:flex-none"
-                >
-                  {isApplyingText ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Applying...
-                    </>
-                  ) : (
-                    <>
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Edit Text
-                    </>
-                  )}
-                </Button>
-              )}
-
-              {/* Botão de Aplicar Logo (Manual) */}
-              {logoUrl && !displayPost.imageUrl?.includes('composed') && (
-                <Button
-                  variant="secondary"
-                  onClick={handleApplyLogo}
-                  disabled={isComposing}
-                  className="flex-1 md:flex-none"
-                >
-                  {isComposing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Applying...
-                    </>
-                  ) : (
-                    <>
-                      <ImagePlus className="mr-2 h-4 w-4" />
-                      Apply Logo
-                    </>
-                  )}
-                </Button>
-              )}
-
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            {/* Botão de Editar Texto */}
+            {displayPost.headlineText && displayPost.textOverlay && displayPost.imageUrl && (
               <Button
-                variant="outline"
-                onClick={handleExport}
-                disabled={exporting}
+                variant="secondary"
+                onClick={() => setShowTextEditor(true)}
+                disabled={isApplyingText}
                 className="flex-1 md:flex-none"
               >
-                {exporting ? (
+                {isApplyingText ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Exporting...
+                    Applying...
                   </>
                 ) : (
                   <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Edit Text
                   </>
                 )}
               </Button>
+            )}
 
+            {/* Botão de Aplicar Logo (Manual) */}
+            {logoUrl && !displayPost.imageUrl?.includes('composed') && (
               <Button
-                variant="default"
-                onClick={handleSaveToDatabase}
-                disabled={saving}
-                className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                variant="secondary"
+                onClick={handleApplyLogo}
+                disabled={isComposing}
+                className="flex-1 md:flex-none"
               >
-                {saving ? (
+                {isComposing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    Applying...
                   </>
                 ) : (
                   <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save to Database
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    Apply Logo
                   </>
                 )}
               </Button>
-            </div>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex-1 md:flex-none"
+            >
+              {exporting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </>
+              )}
+            </Button>
+
+            <Button
+              variant="default"
+              onClick={handleSaveToDatabase}
+              disabled={saving}
+              className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save to Database
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </Card>
-
-      {/* Text Overlay Editor Modal */}
-      {showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
-        <TextOverlayEditor
-          imageUrl={displayPost.imageUrl}
-          text={displayPost.headlineText}
-          initialPosition={displayPost.textOverlay?.position || 'center'}
-          onApply={handleApplyTextWithConfig}
-          onCancel={() => setShowTextEditor(false)}
-        />
-      )}
     </div>
+      </Card >
+
+    {/* Text Overlay Editor Modal */ }
+  {
+    showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
+      <TextOverlayEditor
+        imageUrl={displayPost.imageUrl}
+        text={displayPost.headlineText}
+        initialPosition={displayPost.textOverlay?.position || 'center'}
+        onApply={handleApplyTextWithConfig}
+        onCancel={() => setShowTextEditor(false)}
+      />
+    )
+  }
+    </div >
   );
 }

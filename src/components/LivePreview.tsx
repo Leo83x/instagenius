@@ -63,11 +63,12 @@ export function LivePreview({
     }, [imageUrl]);
 
     const handleImageError = () => {
+        console.warn("LivePreview: Image error, triggering fallback chain...");
         if (currentImage === imageUrl && supabaseUrl && supabaseUrl !== imageUrl) {
-            console.warn("LivePreview: Falling back to Supabase...");
+            console.log("LivePreview: Falling back to Supabase...");
             setCurrentImage(supabaseUrl);
         } else if (currentImage && !currentImage.includes('images.unsplash.com')) {
-            console.warn("LivePreview: Falling back to Emergency Unsplash...");
+            console.log("LivePreview: Falling back to Emergency Unsplash...");
             const query = encodeURIComponent(caption || "marketing");
             setCurrentImage(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
         } else {
