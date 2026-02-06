@@ -118,6 +118,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   } : currentPost;
 
   const [activeImageUrl, setActiveImageUrl] = useState<string | undefined>(undefined);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     setActiveImageUrl(displayPost.imageUrl);
@@ -158,6 +159,8 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     } else if (activeImageUrl?.includes('unsplash.com')) {
       const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
       setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
+    } else if (activeImageUrl?.includes('loremflickr.com') || activeImageUrl?.includes('data:image')) {
+      setActiveImageUrl("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTA4MCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEwODAiIGZpbGw9IiNFMkU4RjAiLz48dGV4dCB4PSI1NDAiIHk9IjU0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQwIiBmaWxsPSIjOTQ0Qjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbWFnZW0gSW5zdGFHZW5pdXM8L3RleHQ+PC9zdmc+");
     } else {
       setActiveImageUrl(displayPost.imageUrl);
     }
