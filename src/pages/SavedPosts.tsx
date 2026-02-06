@@ -273,10 +273,14 @@ function PostImage({ src, alt }: { src: string; alt: string }) {
   }, [src]);
 
   const handleError = () => {
+    console.warn("SavedPosts: Image error, triggering fallback chain...");
     if (currentSrc === src && !currentSrc.includes('images.unsplash.com')) {
-      console.warn("SavedPosts: Image load failed, trying emergency fallback...");
+      console.log("SavedPosts: Falling back to Emergency Unsplash...");
       const query = encodeURIComponent(alt || "business,marketing");
       setCurrentSrc(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
+    } else if (currentSrc.includes('images.unsplash.com')) {
+      console.log("SavedPosts: Falling back to Placeholder...");
+      setCurrentSrc(`https://placehold.co/1080x1080/6366f1/ffffff?text=InstaGenius+Post`);
     } else {
       console.error("SavedPosts: All image fallbacks failed.");
     }
