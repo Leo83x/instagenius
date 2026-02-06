@@ -281,7 +281,6 @@ function PostImage({ src, alt }: { src: string; alt: string }) {
       console.error("SavedPosts: All image fallbacks failed.");
     }
   };
- kitchen sink
 
   return (
     <img
