@@ -118,6 +118,7 @@ export default function SavedPosts() {
   };
 
   const publishNow = async (post: any) => {
+    let toastId: string | number | undefined;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -150,7 +151,7 @@ export default function SavedPosts() {
 
       if (insertError) throw insertError;
 
-      toast.loading("Publicando no Instagram...");
+      toastId = toast.loading("Publicando no Instagram...");
 
       const { data, error } = await supabase.functions.invoke("publish-instagram", {
         body: { scheduledPostId: scheduledPost.id },
@@ -159,14 +160,18 @@ export default function SavedPosts() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success("Post publicado com sucesso no Instagram!");
+        toast.success("Post publicado com sucesso no Instagram!", { id: toastId });
         loadPosts();
       } else {
         throw new Error(data.error || "Erro ao publicar");
       }
     } catch (error: any) {
       console.error("Error publishing:", error);
-      toast.error(error.message || "Erro ao publicar no Instagram");
+      if (toastId) {
+        toast.error(error.message || "Erro ao publicar no Instagram", { id: toastId });
+      } else {
+        toast.error(error.message || "Erro ao publicar no Instagram");
+      }
     }
   };
 
