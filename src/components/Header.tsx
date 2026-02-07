@@ -1,17 +1,28 @@
-import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Lightbulb, CreditCard, Menu, User, Image } from "lucide-react";
+import { Instagram, Settings as SettingsIcon, LogOut, BookmarkCheck, Link2, BarChart3, Lightbulb, CreditCard, Menu, User, Image, CalendarDays, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NavLink } from "./NavLink";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 
 
 export function Header() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   const handleSignOut = async () => {
     try {
@@ -27,6 +38,7 @@ export function Header() {
   const mainNavItems = [
     { to: "/", label: "Início", icon: Instagram },
     { to: "/posts", label: "Posts", icon: BookmarkCheck },
+    { to: "/schedule", label: "Agenda", icon: CalendarDays },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/themes", label: "Temas", icon: Lightbulb },
     { to: "/images", label: "Imagens", icon: Image },
@@ -63,6 +75,13 @@ export function Header() {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          {mounted && (
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={toggleTheme}>
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+          )}
+
           {/* Account Menu Dropdown - Desktop */}
           <div className="hidden lg:block">
             <DropdownMenu>

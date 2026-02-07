@@ -106,27 +106,29 @@ export default function Analytics() {
     setGrowthData(mockGrowthData);
   };
 
-  const refreshAnalytics = async (postId: string) => {
+  const refreshAnalytics = async (postId?: string) => {
+    const toastId = toast.loading("Atualizando métricas...");
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data, error } = await supabase.functions.invoke("refresh-analytics", {
+        body: { postId },
+      });
 
-      const { data: profile } = await supabase
-        .from("company_profiles")
-        .select("instagram_access_token")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      if (error) throw error;
 
-      if (!profile?.instagram_access_token) {
-        toast.error("Conecte sua conta Instagram primeiro em Configurações");
-        return;
+      if (data.success) {
+        toast.success(data.message || "Métricas atualizadas!", { id: toastId });
+        await loadPostsWithAnalytics();
+      } else {
+        throw new Error(data.error || "Erro ao atualizar");
       }
-
-      toast.success("Métricas atualizadas!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error refreshing analytics:", error);
-      toast.error("Erro ao atualizar métricas");
+      toast.error(error.message || "Erro ao atualizar métricas", { id: toastId });
     }
+  };
+
+  const refreshAllAnalytics = async () => {
+    await refreshAnalytics();
   };
 
   if (loading) {
@@ -145,11 +147,17 @@ export default function Analytics() {
       <Header />
       
       <main className="container py-8 space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
-            Análise detalhada de performance e insights
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-display font-bold">Analytics</h1>
+            <p className="text-muted-foreground">
+              Análise detalhada de performance e insights
+            </p>
+          </div>
+          <Button onClick={refreshAllAnalytics} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar Todas as Métricas
+          </Button>
         </div>
 
         <Tabs defaultValue="posts" className="space-y-6">

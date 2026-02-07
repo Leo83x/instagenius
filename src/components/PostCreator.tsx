@@ -28,6 +28,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
   const [tone, setTone] = useState("professional");
   const [style, setStyle] = useState("photography");
   const [cta, setCta] = useState("");
+  const [customCaption, setCustomCaption] = useState("");
   const [brandColors, setBrandColors] = useState<string[]>(["#8b5cf6", "#ec4899", "#f59e0b"]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [companyProfile, setCompanyProfile] = useState<any>(null);
@@ -102,6 +103,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           tone,
           style,
           cta,
+          customCaption,
           postType,
           brandColors: companyProfile?.brand_colors || brandColors,
           companyName: companyProfile?.company_name || "Sua Empresa",
@@ -281,6 +283,18 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                 placeholder="Ex: Acesse o link na bio, Saiba mais, Compre agora"
                 value={cta}
                 onChange={(e) => setCta(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="customCaption">Legenda Personalizada (Opcional)</Label>
+              <Textarea
+                id="customCaption"
+                placeholder="Escreva sua própria legenda. Se preenchida, a IA usará este texto como base."
+                value={customCaption}
+                onChange={(e) => setCustomCaption(e.target.value)}
+                rows={3}
+                className="resize-none"
               />
             </div>
           </div>
