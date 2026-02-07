@@ -13,6 +13,7 @@ import Analytics from "./pages/Analytics";
 import ThemeSuggestions from "./pages/ThemeSuggestions";
 import ImageLibrary from "./pages/ImageLibrary";
 import Subscription from "./pages/Subscription";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +74,7 @@ const App = () => {
             
             <Route path="/themes" element={<ThemeSuggestions />} />
             <Route path="/images" element={<ImageLibrary />} />
+            <Route path="/schedule" element={<Schedule />} />
             <Route path="/subscription" element={<Subscription />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

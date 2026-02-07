@@ -4,10 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Instagram, CheckCircle2, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Instagram, CheckCircle2, XCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Header } from "@/components/Header";
 
 export default function InstagramIntegration() {
   const navigate = useNavigate();
@@ -298,17 +299,9 @@ export default function InstagramIntegration() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-subtle">
+      <Header />
       <div className="container py-8 max-w-2xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar
-        </Button>
-
         <Card className="p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center">

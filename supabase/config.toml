@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.facebook-oauth-callback]
 verify_jwt = false
+
+[functions.refresh-analytics]
+verify_jwt = false

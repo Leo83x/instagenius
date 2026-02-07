@@ -35,6 +35,7 @@ serve(async (req) => {
       tone = 'professional',
       style = 'photography',
       cta,
+      customCaption,
       postType = 'feed',
       brandColors = [],
       companyName,
@@ -172,6 +173,7 @@ Palavras-chave: ${keywords.join(', ') || 'inovação, qualidade'}
 OBJETIVO: ${objective}
 TEMA: ${theme}
 ${cta ? `CTA SUGERIDA: ${cta}` : ''}
+${customCaption ? `\nLEGENDA PERSONALIZADA DO USUÁRIO (use como base, ajuste e otimize mantendo a essência):\n"${customCaption}"` : ''}
 
 Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem DETALHADOS.
 `;
