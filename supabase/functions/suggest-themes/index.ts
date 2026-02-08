@@ -44,10 +44,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+    // Gemini API Key Logic
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCf6l4VhVxYDXZBe5hX1eIYWk6KwV-gLHk';
 
     const systemPrompt = `Você é um especialista em marketing de conteúdo e estratégia de redes sociais. 
 Baseado no perfil da empresa fornecido, sugira 5 temas de conteúdo estratégicos e relevantes.
@@ -59,7 +57,20 @@ Para cada tema, forneça:
 - frequency: Uma das seguintes: "daily", "weekly", "biweekly", "monthly"
 - suggested_hashtags: Array de 5-8 hashtags relevantes (inclua # no início)
 
-Considere o público-alvo, nicho de mercado, tom de voz e palavras-chave da empresa para criar sugestões personalizadas e efetivas.`;
+Considere o público-alvo, nicho de mercado, tom de voz e palavras-chave da empresa para criar sugestões personalizadas e efetivas.
+
+RETORNE APENAS UM JSON VÁLIDO NO SEGUINTE FORMATO:
+{
+  "themes": [
+    {
+      "theme_name": "Nome...",
+      "description": "Descrição...",
+      "category": "Categoria...",
+      "frequency": "weekly",
+      "suggested_hashtags": ["#tag1", "#tag2"]
+    }
+  ]
+}`;
 
     const userPrompt = `Perfil da Empresa:
 - Nome: ${profile.company_name}
@@ -71,89 +82,72 @@ Considere o público-alvo, nicho de mercado, tom de voz e palavras-chave da empr
 
 Gere 5 temas de conteúdo personalizados para esta empresa.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const geminiPayload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt + "\n\n" + userPrompt }]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        responseMimeType: "application/json"
+      }
+    };
+
+    console.log('Calling Google Gemini API (Model: gemini-2.0-flash)...');
+
+    // Using gemini-2.0-flash
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        tools: [{
-          type: 'function',
-          function: {
-            name: 'suggest_themes',
-            description: 'Retorna 5 sugestões de temas de conteúdo',
-            parameters: {
-              type: 'object',
-              properties: {
-                themes: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      theme_name: { type: 'string' },
-                      description: { type: 'string' },
-                      category: { 
-                        type: 'string',
-                        enum: ['Conteúdo Educativo', 'Promoções', 'Engajamento', 'Bastidores', 'Dicas']
-                      },
-                      frequency: { 
-                        type: 'string',
-                        enum: ['daily', 'weekly', 'biweekly', 'monthly']
-                      },
-                      suggested_hashtags: {
-                        type: 'array',
-                        items: { type: 'string' }
-                      }
-                    },
-                    required: ['theme_name', 'description', 'category', 'frequency', 'suggested_hashtags']
-                  }
-                }
-              },
-              required: ['themes']
-            }
-          }
-        }],
-        tool_choice: { type: 'function', function: { name: 'suggest_themes' } }
+        contents: geminiPayload.contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json"
+        }
       }),
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de taxa excedido. Tente novamente mais tarde.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('Gemini API error:', aiResponse.status, errorText);
+
+      let friendlyError = `Erro na IA (${aiResponse.status}): ${errorText.substring(0, 50)}`;
+      if (aiResponse.status === 429) {
+        friendlyError = "Limite de requisições atingido. Por favor, aguarde 60 segundos e tente novamente.";
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos ao seu workspace.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      return new Response(JSON.stringify({ error: 'Erro ao gerar sugestões' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      throw new Error(friendlyError);
     }
 
-    const aiResponse = await response.json();
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    
-    if (!toolCall) {
-      throw new Error('No tool call in AI response');
+    const aiData = await aiResponse.json();
+    const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!content) {
+      throw new Error('Gemini response não contém conteúdo válido');
     }
 
-    const themesData = JSON.parse(toolCall.function.arguments);
+    let result;
+    try {
+      // Extrair JSON do markdown se necessário
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+      result = JSON.parse(jsonStr);
+    } catch (e) {
+      console.error('Failed to parse AI response:', e);
+      throw new Error('Falha ao processar resposta da IA');
+    }
 
-    return new Response(JSON.stringify({ suggestions: themesData.themes }), {
+    if (!result.themes || !Array.isArray(result.themes)) {
+      throw new Error('Resposta da IA inválida: propriedade "themes" ausente ou não é array');
+    }
+
+    return new Response(JSON.stringify({ suggestions: result.themes }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

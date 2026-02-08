@@ -16,6 +16,8 @@ import { Sparkles, ImagePlus, Upload, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { PreviewAlert } from "./PreviewAlert";
+import { LivePreview } from "./LivePreview";
 
 interface PostCreatorProps {
   onPostGenerated?: (variations: any) => void;
@@ -67,15 +69,14 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error loading profile:", error);
-        return;
-      }
+      if (error) throw error;
 
       if (data) {
         setCompanyProfile(data);
         setTone(data.default_tone || "professional");
-        setBrandColors(data.brand_colors || ["#8b5cf6", "#ec4899", "#f59e0b"]);
+        if (data.brand_colors && data.brand_colors.length > 0) {
+          setBrandColors(data.brand_colors);
+        }
       }
     } catch (error) {
       console.error("Error loading company profile:", error);
@@ -86,7 +87,11 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
 
   const handleGenerate = async () => {
     if (!theme || !objective) {
+<<<<<<< HEAD
       toast.error("Please fill in the theme and objective of the post");
+=======
+      toast.error("Please fill in the theme and campaign objective");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
       return;
     }
 
@@ -96,6 +101,17 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("You need to be logged in");
+<<<<<<< HEAD
+=======
+        setIsGenerating(false);
+        return;
+      }
+
+      // Check credits
+      if (companyProfile && companyProfile.ai_credits_remaining <= 0) {
+        toast.error("Você atingiu o limite de créditos de IA para este mês.");
+        setIsGenerating(false);
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
         return;
       }
 
@@ -117,7 +133,11 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           includeLogo,
           logoUrl: companyProfile?.logo_url,
           includeTextOverlay,
+<<<<<<< HEAD
           suggestedText,
+=======
+          suggestedText: suggestedText.trim() || undefined,
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
           textPosition
         }
       });
@@ -127,19 +147,30 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
         throw error;
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      const responseData = data;
+      if (responseData.error) {
+        throw new Error(responseData.error);
       }
 
+<<<<<<< HEAD
       toast.success("Posts generated successfully!");
+=======
+      // Refresh profile to update credits UI
+      await loadCompanyProfile();
+
+      toast.success("Posts gerados com sucesso!");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
 
       if (onPostGenerated && data.variations) {
         onPostGenerated(data.variations);
       }
-
     } catch (error: any) {
       console.error('Error generating post:', error);
+<<<<<<< HEAD
       toast.error(error.message || "Error generating post. Try again.");
+=======
+      toast.error(error.message || "Error generating post. Please try again.");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
     } finally {
       setIsGenerating(false);
     }
@@ -175,6 +206,8 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
           </Tabs>
         </div>
 
+        <PreviewAlert show={!!theme} />
+
         <div className="grid gap-4 md:gap-6 md:grid-cols-2">
           <div className="space-y-4">
             <div>
@@ -194,7 +227,11 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             </div>
 
             <div>
+<<<<<<< HEAD
               <Label htmlFor="theme">Theme / Post Description *</Label>
+=======
+              <Label htmlFor="theme">Post Theme / Description *</Label>
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
               <Textarea
                 id="theme"
                 placeholder="Ex: New product launch, summer sale, usage tips..."
@@ -265,6 +302,7 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                   </div>
                 )}
 
+<<<<<<< HEAD
 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -315,6 +353,54 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
                     </div>
                   )}
                 </div>
+=======
+                <div className="flex items-center gap-3 pt-2 border-t">
+                  <Checkbox
+                    id="includeTextOverlay"
+                    checked={includeTextOverlay}
+                    onCheckedChange={(checked) => setIncludeTextOverlay(checked as boolean)}
+                  />
+                  <Label htmlFor="includeTextOverlay" className="text-sm cursor-pointer">
+                    Include text overlay
+                  </Label>
+                </div>
+
+                {includeTextOverlay && (
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <Label htmlFor="suggestedText" className="text-xs">
+                        Suggested text (optional)
+                      </Label>
+                      <Input
+                        id="suggestedText"
+                        placeholder="Ex: Transform Your Business Today"
+                        value={suggestedText}
+                        onChange={(e) => setSuggestedText(e.target.value)}
+                        maxLength={50}
+                        className="mt-1 text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave empty for AI to generate automatically
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="textPosition" className="text-xs">
+                        Text position
+                      </Label>
+                      <Select value={textPosition} onValueChange={(v) => setTextPosition(v as "top" | "center" | "bottom")}>
+                        <SelectTrigger id="textPosition" className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top">Top</SelectItem>
+                          <SelectItem value="center">Center</SelectItem>
+                          <SelectItem value="bottom">Bottom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
               </Card>
             </div>
 
@@ -338,7 +424,11 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
               <Label htmlFor="cta">Call-to-Action (Optional)</Label>
               <Input
                 id="cta"
+<<<<<<< HEAD
                 placeholder="Ex: Link in bio, Learn more, Shop now"
+=======
+                placeholder="Ex: Check link in bio, Learn more, Shop now"
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 value={cta}
                 onChange={(e) => setCta(e.target.value)}
               />
@@ -389,6 +479,19 @@ export function PostCreator({ onPostGenerated }: PostCreatorProps) {
             )}
           </Button>
         </div>
+
+        {/* Preview em Tempo Real */}
+        {theme && (
+          <div className="mt-6">
+            <LivePreview
+              caption={theme}
+              hashtags={cta ? [cta] : []}
+              companyName={companyProfile?.company_name || "Sua Empresa"}
+              companyLogo={companyProfile?.logo_url}
+              postType={postType}
+            />
+          </div>
+        )}
       </div>
     </Card >
   );

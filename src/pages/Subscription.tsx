@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, Crown, Zap, Sparkles, CreditCard, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Subscription() {
   const [profile, setProfile] = useState<any>(null);
@@ -159,6 +167,32 @@ export default function Subscription() {
     },
   ];
 
+<<<<<<< HEAD
+=======
+  // Mock Payment State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+
+  const handleUpgrade = (plan: any) => {
+    setSelectedPlan(plan);
+    setShowPaymentModal(true);
+  };
+
+  const confirmPayment = async () => {
+    setProcessingPayment(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    setProcessingPayment(false);
+    setShowPaymentModal(false);
+    toast.success(`Assinatura do plano ${selectedPlan.name} realizada com sucesso! (Modo Simulação)`);
+
+    // Here we would typically update the local state or refetch query
+    // setSubscription({ ...subscription, plan_type: selectedPlan.name.toLowerCase() });
+  };
+
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-subtle">
@@ -263,11 +297,43 @@ export default function Subscription() {
                   <Button
                     className="w-full"
                     variant={plan.current ? "outline" : "default"}
+<<<<<<< HEAD
                     onClick={() => handleChangePlan(plan.name)}
+=======
+                    onClick={() => handleUpgrade(plan)}
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                     disabled={plan.current}
                   >
                     {plan.current ? "Current Plan" : "Select Plan"}
                   </Button>
+                  <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Confirmar Assinatura</DialogTitle>
+                        <DialogDescription>
+                          Você está assinando o plano <strong>{selectedPlan?.name}</strong> por <strong>{selectedPlan?.price}</strong>/mês.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4 space-y-4">
+                        <div className="p-4 border rounded-lg flex items-center gap-4 bg-muted/50">
+                          <CreditCard className="h-8 w-8 text-primary" />
+                          <div>
+                            <p className="font-semibold">Cartão de Crédito (Simulado)</p>
+                            <p className="text-xs text-muted-foreground">**** **** **** 4242</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-yellow-600 bg-yellow-100 p-2 rounded dark:bg-yellow-900/30 dark:text-yellow-400">
+                          ⚠️ Ambiente de Teste: Nenhuma cobrança real será feita.
+                        </p>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowPaymentModal(false)}>Cancelar</Button>
+                        <Button onClick={confirmPayment} disabled={processingPayment}>
+                          {processingPayment ? "Processando..." : "Confirmar Pagamento"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </Card>
             );

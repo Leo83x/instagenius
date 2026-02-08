@@ -4,7 +4,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NavLink } from "./NavLink";
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
+=======
+import { ThemeToggle } from "./ThemeToggle";
+import { useState } from "react";
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useTheme } from "next-themes";
@@ -36,7 +41,11 @@ export function Header() {
   };
 
   const mainNavItems = [
+<<<<<<< HEAD
     { to: "/", label: "Home", icon: Instagram },
+=======
+    { to: "/dashboard", label: "Home", icon: Instagram },
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
     { to: "/posts", label: "Posts", icon: BookmarkCheck },
     { to: "/schedule", label: "Schedule", icon: CalendarDays },
     { to: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -54,7 +63,7 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-8">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/dashboard")}>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-instagram">
               <Instagram className="h-5 w-5 text-white" />
             </div>
@@ -75,6 +84,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+<<<<<<< HEAD
           {/* Theme Toggle */}
           {mounted && (
             <Button variant="ghost" size="icon" className="rounded-full" onClick={toggleTheme}>
@@ -82,6 +92,9 @@ export function Header() {
             </Button>
           )}
 
+=======
+          <ThemeToggle />
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
           {/* Account Menu Dropdown - Desktop */}
           <div className="hidden lg:block">
             <DropdownMenu>
@@ -103,11 +116,16 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
+<<<<<<< HEAD
                   Sign Out
+=======
+                  Logout
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+<<<<<<< HEAD
 
           {/* Mobile Menu */}
           <div className="md:hidden">
@@ -160,6 +178,57 @@ export function Header() {
                       Sign Out
                     </Button>
                   </div>
+=======
+
+          {/* Mobile Menu */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="lg:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+              <div className="flex flex-col gap-4 mt-8">
+                <div className="flex items-center gap-3 pb-4 border-b">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-instagram">
+                    <Instagram className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-display font-bold">Studio Genius</h2>
+                    <p className="text-xs text-muted-foreground">Menu</p>
+                  </div>
+                </div>
+
+                <nav className="flex flex-col gap-2">
+                  {[...mainNavItems, ...accountMenuItems].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Button
+                        key={item.to}
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => {
+                          navigate(item.to);
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        <Icon className="h-4 w-4 mr-2" />
+                        {item.label}
+                      </Button>
+                    );
+                  })}
+                </nav>
+
+                <div className="pt-4 border-t mt-auto">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 </div>
               </SheetContent>
             </Sheet>

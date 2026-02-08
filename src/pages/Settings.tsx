@@ -38,7 +38,7 @@ export default function Settings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/");
+        navigate("/login");
         return;
       }
 
@@ -106,8 +106,14 @@ export default function Settings() {
         .from("company-logos")
         .getPublicUrl(fileName);
 
+<<<<<<< HEAD
       setLogoUrl(urlData.publicUrl);
       toast.success("Logo uploaded successfully!");
+=======
+      const publicUrl = `${urlData.publicUrl}?t=${new Date().getTime()}`;
+      setLogoUrl(publicUrl);
+      toast.success("Logo enviado com sucesso!");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
     } catch (error: any) {
       console.error("Error uploading logo:", error);
       toast.error("Error uploading logo");
@@ -168,8 +174,13 @@ export default function Settings() {
 
       if (error) throw error;
 
+<<<<<<< HEAD
       toast.success("Profile saved successfully!");
       navigate("/");
+=======
+      toast.success("Perfil salvo com sucesso!");
+      navigate("/dashboard");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
     } catch (error: any) {
       console.error("Error saving profile:", error);
       toast.error(error.message || "Error saving profile");
@@ -187,9 +198,24 @@ export default function Settings() {
   }
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
       <div className="container py-8 max-w-4xl">
+=======
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container py-8 max-w-4xl">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/dashboard")}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
+
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
         <Card className="p-8">
           <h1 className="text-3xl font-display font-bold mb-2">Settings</h1>
           <p className="text-muted-foreground mb-8">

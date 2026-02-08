@@ -1,0 +1,11 @@
+open supabase\.temp\profile: The system cannot find the file specified.
+Using access token from env var...
+Loading project ref from flag: hvljxznjbppfvfodkbqy
+Supabase CLI 2.75.5
+Using profile: supabase (supabase.co)
+WARNING: Docker is not running
+Using access token from env var...
+2026/02/05 20:38:27 HTTP POST: https://api.supabase.com/v1/projects/hvljxznjbppfvfodkbqy/functions/deploy?slug=generate-post
+Uploading asset (generate-post): supabase/functions/generate-post/index.ts
+Deployed Functions on project hvljxznjbppfvfodkbqy: generate-post
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/hvljxznjbppfvfodkbqy/functions

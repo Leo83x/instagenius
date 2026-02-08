@@ -23,6 +23,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+<<<<<<< HEAD
 import { TextOverlayEditor, TextStyleConfig } from "@/components/TextOverlayEditor";
 import { composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
 
@@ -47,6 +48,11 @@ interface PostVariation {
     position: 'top' | 'center' | 'bottom';
   };
 }
+=======
+import { composeLogoOnImage, composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
+import { TextOverlayEditor, type TextStyleConfig } from "./TextOverlayEditor";
+import { PostVariation } from "@/types";
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
 
 interface PostPreviewProps {
   variations?: PostVariation[];
@@ -56,16 +62,26 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const [currentVariation, setCurrentVariation] = useState(0);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const [isApplyingText, setIsApplyingText] = useState(false);
+  const [showTextEditor, setShowTextEditor] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [companyName, setCompanyName] = useState("your_company");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
+<<<<<<< HEAD
   // Estados para edição
   const [editedCaption, setEditedCaption] = useState("");
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedImageUrl, setEditedImageUrl] = useState("");
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [applyingText, setApplyingText] = useState(false);
+=======
+  const [editedCaption, setEditedCaption] = useState("");
+  const [editedHashtags, setEditedHashtags] = useState("");
+  const [editedImageUrl, setEditedImageUrl] = useState("");
+  const [editedHeadlineText, setEditedHeadlineText] = useState("");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
 
   useEffect(() => {
     const loadCompanyProfile = async () => {
@@ -100,7 +116,6 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
 
   const currentPost = variations[currentVariation];
 
-  // Sincronizar estados de edição quando mudar de variação
   const handleVariationChange = (newIndex: number) => {
     setCurrentVariation(newIndex);
     setIsEditing(false);
@@ -110,6 +125,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     setEditedCaption(currentPost.caption);
     setEditedHashtags(currentPost.hashtags.join(" "));
     setEditedImageUrl(currentPost.imageUrl || "");
+    setEditedHeadlineText(currentPost.headlineText || "");
     setIsEditing(true);
   };
 
@@ -118,14 +134,15 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   };
 
   const saveEdits = () => {
-    // Atualizar a variação atual com os valores editados
     variations[currentVariation] = {
       ...currentPost,
       caption: editedCaption,
       hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
-      imageUrl: editedImageUrl || currentPost.imageUrl
+      imageUrl: editedImageUrl || currentPost.imageUrl,
+      headlineText: editedHeadlineText || currentPost.headlineText
     };
     setIsEditing(false);
+<<<<<<< HEAD
     toast.success("Changes saved to preview!");
   };
 
@@ -169,17 +186,72 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
     } finally {
       setApplyingText(false);
     }
+=======
+    toast.success("Changes saved in preview!");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
   };
 
   const displayPost = isEditing ? {
     ...currentPost,
     caption: editedCaption,
     hashtags: editedHashtags.split(" ").filter(tag => tag.startsWith("#")),
-    imageUrl: editedImageUrl || currentPost.imageUrl
+    imageUrl: editedImageUrl || currentPost.imageUrl,
+    headlineText: editedHeadlineText || currentPost.headlineText
   } : currentPost;
+
+  const [activeImageUrl, setActiveImageUrl] = useState<string | undefined>(undefined);
+  const [showDebug, setShowDebug] = useState(false);
+
+  useEffect(() => {
+    setActiveImageUrl(displayPost.imageUrl);
+  }, [displayPost.imageUrl, currentVariation]);
+
+  const handleImageError = () => {
+    console.warn("Image load error detected for variant", displayPost.variant);
+
+    // Fallback sequence: Original -> Supabase -> Emergency Unsplash -> LoremFlickr -> Fixed Base64
+    if (activeImageUrl === displayPost.imageUrl && currentPost.supabaseUrl && currentPost.supabaseUrl !== displayPost.imageUrl) {
+      console.log("Switching to Fallback 1: Supabase Storage");
+      setActiveImageUrl(currentPost.supabaseUrl);
+    } else if (!activeImageUrl?.includes('unsplash.com') && !activeImageUrl?.includes('loremflickr.com') && !activeImageUrl?.includes('data:image')) {
+      console.log("Switching to Fallback 2: Emergency Unsplash");
+      const query = encodeURIComponent(currentPost.altText || "marketing,business");
+      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+    } else if (activeImageUrl?.includes('unsplash.com')) {
+      console.log("Switching to Fallback 3: LoremFlickr");
+      const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
+      setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
+    } else if (activeImageUrl?.includes('loremflickr.com')) {
+      console.log("Switching to Fallback 4: Internal Base64 SVG (CSP Proof)");
+      // Simple grey placeholder with text
+      setActiveImageUrl("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTA4MCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEwODAiIGZpbGw9IiNFMkU4RjAiLz48dGV4dCB4PSI1NDAiIHk9IjU0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQwIiBmaWxsPSIjOTQ0Qjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbWFnZW0gSW5zdGFHZW5pdXM8L3RleHQ+PC9zdmc+");
+    }
+  };
+
+  const handleNextImage = () => {
+    if (!activeImageUrl || activeImageUrl === displayPost.imageUrl) {
+      if (currentPost.supabaseUrl) setActiveImageUrl(currentPost.supabaseUrl);
+      else {
+        const query = encodeURIComponent(currentPost.altText || "marketing");
+        setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+      }
+    } else if (activeImageUrl?.includes('supabase.co')) {
+      const query = encodeURIComponent(currentPost.altText || "marketing");
+      setActiveImageUrl(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&term=${query}`);
+    } else if (activeImageUrl?.includes('unsplash.com')) {
+      const query = encodeURIComponent(currentPost.altText?.split(' ').slice(0, 2).join(',') || "business");
+      setActiveImageUrl(`https://loremflickr.com/1080/1080/${query}`);
+    } else if (activeImageUrl?.includes('loremflickr.com') || activeImageUrl?.includes('data:image')) {
+      setActiveImageUrl("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMDgwIiB2aWV3Qm94PSIwIDAgMTA4MCAxMDgwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjEwODAiIGZpbGw9IiNFMkU4RjAiLz48dGV4dCB4PSI1NDAiIHk9IjU0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQwIiBmaWxsPSIjOTQ0Qjg0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5JbWFnZW0gSW5zdGFHZW5pdXM8L3RleHQ+PC9zdmc+");
+    } else {
+      setActiveImageUrl(displayPost.imageUrl);
+    }
+    toast.info("Tentando outra fonte de imagem...");
+  };
 
   const handleExport = async () => {
     if (!displayPost) return;
+<<<<<<< HEAD
 
     setExporting(true);
     try {
@@ -201,6 +273,16 @@ ${displayPost.altText}
 STRATEGY:
 ${displayPost.rationale}
       `.trim();
+=======
+    setExporting(true);
+    try {
+      const content = `
+VARIAÇÃO: ${displayPost.variant}
+LEGENDA: ${displayPost.caption}
+HASHTAGS: ${displayPost.hashtags.join(" ")}
+ESTRATÉGIA: ${displayPost.rationale}
+`.trim();
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
 
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -212,19 +294,22 @@ ${displayPost.rationale}
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      if (displayPost.imageUrl) {
-        const response = await fetch(displayPost.imageUrl);
+      if (activeImageUrl) {
+        const response = await fetch(activeImageUrl);
         const imageBlob = await response.blob();
-        const imageUrl = URL.createObjectURL(imageBlob);
+        const imgUrl = URL.createObjectURL(imageBlob);
         const imgLink = document.createElement("a");
-        imgLink.href = imageUrl;
+        imgLink.href = imgUrl;
         imgLink.download = `imagem-variacao-${displayPost.variant}.jpg`;
         document.body.appendChild(imgLink);
         imgLink.click();
         document.body.removeChild(imgLink);
-        URL.revokeObjectURL(imageUrl);
+        URL.revokeObjectURL(imgUrl);
       }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
       toast.success("Post and image exported successfully!");
     } catch (error) {
       console.error("Error exporting:", error);
@@ -234,9 +319,55 @@ ${displayPost.rationale}
     }
   };
 
+  const handleApplyLogo = async () => {
+    if (!currentPost.imageUrl || !logoUrl) return;
+    setIsComposing(true);
+    toast.info("Applying logo to image...");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      const composedDataUrl = await composeLogoOnImage(currentPost.imageUrl, logoUrl, 'bottom-right', 0.15);
+      const newImageUrl = await uploadComposedImage(composedDataUrl, user.id, supabase);
+      currentPost.imageUrl = newImageUrl;
+      setActiveImageUrl(newImageUrl);
+      toast.success("Logo applied successfully!");
+    } catch (error) {
+      console.error("Error applying logo:", error);
+      toast.error("Error applying logo to image");
+    } finally {
+      setIsComposing(false);
+    }
+  };
+
+  const handleApplyTextWithConfig = async (config: TextStyleConfig) => {
+    if (!currentPost.imageUrl) return;
+    setShowTextEditor(false);
+    setIsApplyingText(true);
+    toast.info("Aplicando texto na imagem...");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      const composedDataUrl = await composeTextOnImage(currentPost.imageUrl, config.text, config.position, {
+        color: config.color,
+        strokeColor: config.strokeColor,
+        fontFamily: config.fontFamily,
+        fontSize: config.fontSize
+      });
+      const newImageUrl = await uploadComposedImage(composedDataUrl, user.id, supabase);
+      currentPost.imageUrl = newImageUrl;
+      setActiveImageUrl(newImageUrl);
+      currentPost.textOverlay = undefined;
+      toast.success("Texto aplicado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao aplicar texto:", error);
+      toast.error("Erro ao aplicar texto na imagem");
+    } finally {
+      setIsApplyingText(false);
+    }
+  };
+
   const handleSaveToDatabase = async () => {
     if (!displayPost) return;
-
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -244,7 +375,6 @@ ${displayPost.rationale}
         toast.error("You need to be logged in");
         return;
       }
-
       const { error } = await supabase.from("generated_posts").insert({
         user_id: user.id,
         variant: displayPost.variant,
@@ -253,16 +383,19 @@ ${displayPost.rationale}
         post_type: "feed",
         caption: displayPost.caption,
         hashtags: displayPost.hashtags,
-        image_prompt: displayPost.imagePrompt.description,
-        image_url: displayPost.imageUrl || null,
-        alt_text: displayPost.altText,
-        rationale: displayPost.rationale,
+        image_prompt: displayPost.imagePrompt?.description || "",
+        image_url: activeImageUrl || displayPost.imageUrl || null,
+        alt_text: displayPost.altText || "",
+        rationale: displayPost.rationale || "",
         status: "draft"
       });
-
       if (error) throw error;
+<<<<<<< HEAD
 
       toast.success("Post saved successfully!");
+=======
+      toast.success("Post salvo com sucesso!");
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
     } catch (error: any) {
       console.error("Error saving post:", error);
       toast.error("Error saving post");
@@ -281,7 +414,15 @@ ${displayPost.rationale}
               {variations.length} variations generated for A/B testing
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-[10px] uppercase tracking-widest opacity-30 hover:opacity-100"
+              onClick={() => setShowDebug(!showDebug)}
+            >
+              Diagnostic
+            </Button>
             <Button
               variant="outline"
               size="icon"
@@ -303,7 +444,7 @@ ${displayPost.rationale}
 
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="bg-card border rounded-lg overflow-hidden">
+            <div className="bg-card border rounded-lg overflow-hidden relative">
               <div className="flex items-center gap-3 p-3 border-b">
                 {logoUrl ? (
                   <img src={logoUrl} alt={companyName} className="h-8 w-8 rounded-full object-cover" />
@@ -314,11 +455,19 @@ ${displayPost.rationale}
               </div>
 
               <div className="bg-muted aspect-square flex items-center justify-center relative">
+<<<<<<< HEAD
                 {displayPost.imageUrl ? (
                   <img
                     src={displayPost.imageUrl}
+=======
+                {activeImageUrl ? (
+                  <img
+                    src={activeImageUrl}
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                     alt={displayPost.altText}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                    onError={handleImageError}
+                    key={activeImageUrl}
                   />
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
@@ -365,6 +514,7 @@ ${displayPost.rationale}
             <div className="flex items-center justify-between">
               <h4 className="font-semibold">Real-time Editing</h4>
               {!isEditing ? (
+<<<<<<< HEAD
                 <>
                   <Button variant="outline" size="sm" onClick={startEditing}>
                     <Edit2 className="h-4 w-4 mr-2" />
@@ -378,6 +528,12 @@ ${displayPost.rationale}
                     </Button>
                   )}
                 </>
+=======
+                <Button variant="outline" size="sm" onClick={startEditing}>
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
               ) : (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={cancelEditing}>
@@ -392,6 +548,7 @@ ${displayPost.rationale}
               )}
             </div>
 
+<<<<<<< HEAD
             {
               isEditing ? (
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
@@ -425,6 +582,71 @@ ${displayPost.rationale}
                       className="mt-1"
                     />
                   </div>
+=======
+            {isEditing ? (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                <div>
+                  <Label htmlFor="caption">Caption</Label>
+                  <Textarea
+                    id="caption"
+                    value={editedCaption}
+                    onChange={(e) => setEditedCaption(e.target.value)}
+                    rows={6}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="hashtags">Hashtags (separated by space)</Label>
+                  <Input
+                    id="hashtags"
+                    value={editedHashtags}
+                    onChange={(e) => setEditedHashtags(e.target.value)}
+                    placeholder="#exemplo #hashtag"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="imageUrl">URL da Imagem</Label>
+                  <Input
+                    id="imageUrl"
+                    value={editedImageUrl}
+                    onChange={(e) => setEditedImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="mt-1"
+                  />
+                </div>
+                {displayPost.headlineText && (
+                  <div>
+                    <Label htmlFor="headlineText">Text on Image</Label>
+                    <Input
+                      id="headlineText"
+                      value={editedHeadlineText}
+                      onChange={(e) => setEditedHeadlineText(e.target.value)}
+                      placeholder="Max 6 words"
+                      maxLength={50}
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 bg-indigo-50/20"
+                  onClick={handleNextImage}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Trocar Fonte da Imagem (Fallback)
+                </Button>
+
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Badge variant="outline">Strategic Analysis</Badge>
+                  </h4>
+                  <p className="text-sm text-muted-foreground">{displayPost.rationale}</p>
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 </div>
               ) : (
                 <>
@@ -437,6 +659,7 @@ ${displayPost.rationale}
 
                   <Separator />
 
+<<<<<<< HEAD
                   <div>
                     <h4 className="font-semibold mb-2">Image Prompt</h4>
                     <div className="space-y-2">
@@ -445,11 +668,21 @@ ${displayPost.rationale}
                         <Badge variant="secondary">Style: {displayPost.imagePrompt.style}</Badge>
                         <Badge variant="secondary">Mood: {displayPost.imagePrompt.mood}</Badge>
                       </div>
+=======
+                <div>
+                  <h4 className="font-semibold mb-2">Image Prompt</h4>
+                  <div className="space-y-2">
+                    <p className="text-sm">{displayPost.imagePrompt?.description}</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary">Style: {displayPost.imagePrompt?.style}</Badge>
+                      <Badge variant="secondary">Mood: {displayPost.imagePrompt?.mood}</Badge>
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                     </div>
                   </div>
 
                   <Separator />
 
+<<<<<<< HEAD
                   <div>
                     <h4 className="font-semibold mb-2">Alt Text</h4>
                     <p className="text-sm text-muted-foreground">{displayPost.altText}</p>
@@ -477,33 +710,160 @@ ${displayPost.rationale}
               <Button
                 variant="outline"
                 size="sm"
+=======
+                <div>
+                  <h4 className="font-semibold mb-2">Alt Text</h4>
+                  <p className="text-sm text-muted-foreground">{displayPost.altText}</p>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="font-semibold mb-2">Hashtags ({displayPost.hashtags?.length || 0})</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {displayPost.hashtags?.map((tag: string, index: number) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {displayPost.headlineText && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="font-semibold mb-2">Text on Image</h4>
+                      <Badge variant="secondary" className="text-sm">
+                        {displayPost.headlineText}
+                      </Badge>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+              {displayPost.headlineText && displayPost.imageUrl && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowTextEditor(true)}
+                  disabled={isApplyingText}
+                  className="flex-1 md:flex-none"
+                >
+                  {isApplyingText ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Edit Text
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {logoUrl && !displayPost.imageUrl?.includes('composed') && (
+                <Button
+                  variant="secondary"
+                  onClick={handleApplyLogo}
+                  disabled={isComposing}
+                  className="flex-1 md:flex-none"
+                >
+                  {isComposing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="mr-2 h-4 w-4" />
+                      Apply Logo
+                    </>
+                  )}
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 onClick={handleExport}
                 disabled={exporting}
+                className="flex-1 md:flex-none"
               >
                 {exporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exporting...
+                  </>
                 ) : (
-                  <Download className="h-4 w-4 mr-2" />
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </>
                 )}
+<<<<<<< HEAD
                 Export
               </Button>
               <Button
                 variant="default"
                 size="sm"
+=======
+              </Button>
+
+              <Button
+                variant="default"
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
                 onClick={handleSaveToDatabase}
                 disabled={saving}
+                className="flex-1 md:flex-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
               >
                 {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
                 ) : (
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save to Database
+                  </>
                 )}
+<<<<<<< HEAD
                 Save Post
+=======
+>>>>>>> 264721b682500ae016420bfadac81a761fa2d3d6
               </Button>
             </div>
           </div>
         </div>
       </Card>
+
+      {showTextEditor && displayPost.headlineText && displayPost.imageUrl && (
+        <TextOverlayEditor
+          imageUrl={displayPost.imageUrl}
+          text={displayPost.headlineText}
+          initialPosition={displayPost.textOverlay?.position || 'center'}
+          onApply={handleApplyTextWithConfig}
+          onCancel={() => setShowTextEditor(false)}
+        />
+      )}
+
+      {showDebug && (
+        <Card className="p-4 bg-slate-900 text-slate-100 font-mono text-[10px] border-none">
+          <h5 className="text-slate-400 mb-2 uppercase border-b border-slate-800 pb-1">Image Pipeline Status</h5>
+          <div className="space-y-1">
+            <p><span className="text-blue-400">Current Source:</span> {activeImageUrl}</p>
+            <p><span className="text-green-400">Direct AI Link:</span> {displayPost.imageUrl || 'None'}</p>
+            <p><span className="text-purple-400">Supabase Link:</span> {currentPost.supabaseUrl || 'None'}</p>
+            <p><span className="text-yellow-400">Status:</span> {activeImageUrl === displayPost.imageUrl ? 'Attempting Original' : 'Using Fallback'}</p>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

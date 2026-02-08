@@ -21,10 +21,7 @@ export default function SavedPosts() {
   const loadPosts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/");
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from("generated_posts")
@@ -50,6 +47,7 @@ export default function SavedPosts() {
         .eq("id", id);
 
       if (error) throw error;
+
       toast.success("Post deleted successfully");
       loadPosts();
     } catch (error: any) {
@@ -219,10 +217,9 @@ export default function SavedPosts() {
                 {posts.map((post) => (
                   <Card key={post.id} className="p-6 space-y-4">
                     {post.image_url && (
-                      <img
+                      <PostImage
                         src={post.image_url}
                         alt={post.alt_text || "Post"}
-                        className="w-full aspect-square object-cover rounded-lg"
                       />
                     )}
                     <div className="space-y-2">
@@ -293,3 +290,35 @@ export default function SavedPosts() {
   );
 }
 
+function PostImage({ src, alt }: { src: string; alt: string }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setHasError(false);
+  }, [src]);
+
+  const handleError = () => {
+    console.warn("SavedPosts: Image error, triggering fallback chain...");
+    if (currentSrc === src && !currentSrc.includes('images.unsplash.com')) {
+      console.log("SavedPosts: Falling back to Emergency Unsplash...");
+      const query = encodeURIComponent(alt || "business,marketing");
+      setCurrentSrc(`https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1080&q=80&q=fallback&term=${query}`);
+    } else if (currentSrc.includes('images.unsplash.com')) {
+      console.log("SavedPosts: Falling back to Placeholder...");
+      setCurrentSrc(`https://placehold.co/1080x1080/6366f1/ffffff?text=InstaGenius+Post`);
+    } else {
+      console.error("SavedPosts: All image fallbacks failed.");
+    }
+  };
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      onError={handleError}
+      className="w-full aspect-square object-cover rounded-lg"
+    />
+  );
+}

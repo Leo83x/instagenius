@@ -1,0 +1,4 @@
+WARNING: Docker is not running
+Uploading asset (generate-post): supabase/functions/generate-post/index.ts
+unexpected deploy status 400: {"message":"Bundle generation timed out"}
+Try rerunning the command with --debug to troubleshoot the error.

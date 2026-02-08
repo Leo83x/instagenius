@@ -12,10 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyD9oRxUQY92A9YalCobdHnop3afdAsBWI0';
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -50,9 +47,13 @@ serve(async (req) => {
       textPosition = 'center'
     } = await req.json();
 
-    console.log('Generating post with params:', { objective, theme, tone, style, postType });
+    const safeTheme = theme || '';
+    const safeCompanyName = companyName || 'Company';
+    const safeBrandColors = Array.isArray(brandColors) ? brandColors : [];
 
-    // Verificar e decrementar créditos de IA
+    console.log('Generating post with params:', { objective, theme: safeTheme, tone, style, postType });
+
+    // AI Credits Check
     if (userId) {
       const { data: creditResult, error: creditError } = await supabase.rpc('decrement_ai_credits', {
         user_uuid: userId,
@@ -63,7 +64,7 @@ serve(async (req) => {
         console.error('Error checking credits:', creditError);
       } else if (creditResult && creditResult.length > 0 && !creditResult[0].success) {
         return new Response(JSON.stringify({
-          error: 'Créditos de IA insuficientes. Faça upgrade do seu plano.',
+          error: 'Insufficient AI credits. Please upgrade your plan.',
           creditsRemaining: creditResult[0].remaining
         }), {
           status: 402,
@@ -72,19 +73,19 @@ serve(async (req) => {
       }
     }
 
-    // Validação de compliance e segurança
+    // Compliance Validation
     const checkCompliance = (text: string): { safe: boolean; reason?: string } => {
       const healthClaims = /garant|cura|milagre|100%|promessa/gi;
       if (healthClaims.test(text)) {
-        return { safe: false, reason: 'Contém alegações de saúde não permitidas' };
+        return { safe: false, reason: 'Contains unauthorized health claims' };
       }
       return { safe: true };
     };
 
-    const compliance = checkCompliance(theme);
+    const compliance = checkCompliance(safeTheme);
     if (!compliance.safe) {
       return new Response(JSON.stringify({
-        error: 'Conteúdo não permitido',
+        error: 'Content not allowed',
         reason: compliance.reason,
         requiresReview: true
       }), {
@@ -93,307 +94,103 @@ serve(async (req) => {
       });
     }
 
-    // Determinar aspect ratio baseado no tipo de post
     const aspectRatio = postType === 'story' ? '9:16' : '1:1';
     const maxCaptionLength = postType === 'story' ? 125 : 300;
     const isCarousel = postType === 'carousel';
     const carouselSlides = isCarousel ? 5 : 0;
 
-    // System prompt detalhado conforme especificações
-    const systemPrompt = `Você é um especialista em marketing digital e Instagram Business. 
-Sua função é gerar posts PROFISSIONAIS otimizados para máximo engajamento.
-
+    const systemPrompt = `You are a digital marketing specialist. Your role is to generate professional Instagram posts.
+    
 REGRAS OBRIGATÓRIAS:
-1. Sempre gere EXATAMENTE 2 variações para teste A/B:
-   - Variação A: Direta, objetiva, foco em CONVERSÃO (CTA forte, benefício imediato)
-   - Variação B: Emocional, storytelling, foco em RELACIONAMENTO (conexão humana)
+1. Generate EXACTLY 2 variations for A/B testing:
+   - Variant A: Direct, conversion focused.
+   - Variant B: Emotional, storytelling focused.
 
-2. Limites do Instagram:
-   - Legenda máxima: 2.200 caracteres (recomendado: ${maxCaptionLength} chars para maior engajamento)
-   - Hashtags: máximo 30 (recomendado: 5-15 relevantes)
-   - ${postType === 'story' ? 'Stories: texto curto com CTA clara' : 'Feed: primeira linha deve ser um HOOK impactante'}
+2. Instagram Limits:
+   - Caption max: 2200 chars (Recommended: ${maxCaptionLength} for engagement).
+   - Hashtags: max 30 (Recommended: 5-15).
 
-3. Estrutura da legenda:
-   - Hook: Primeira linha chamativa (emojis opcionais conforme tom)
-   - Desenvolvimento: 1-2 linhas explicativas
-   - CTA: Call-to-action clara e específica
-   ${tone === 'formal' ? '- Usar 0-1 emojis' : '- Usar até 3 emojis relevantes'}
+3. Caption Structure:
+   - Hook: Catchy first line.
+   - Body: 1-2 explanatory lines.
+   - CTA: Clear call-to-action.
 
-4. Hashtags (máximo ${maxHashtags}, 3 níveis):
-   - 2-4 hashtags de MARCA (ex: #${companyName?.toLowerCase().replace(/\s/g, '')})
-   - 4-6 de NICHO intermediário (alcance médio)
-   - 2-4 de CAUDA LONGA (específicas, menos concorridas)
-   - NUNCA usar hashtags banidas (#like4like, #follow4follow)
+4. ${includeTextOverlay ? `TEXT OVERLAY (Text on image):
+   - Generate a "headlineText" (max 6 words) in PORTUGUESE.
+   - Must be catchy and complement the image.
+   ${suggestedText ? `- Base it on this suggestion: "${suggestedText}"` : ''}` : ''}
 
-5. ${isCarousel ? `CARROSSEL (${carouselSlides} slides):
-   - Cada variação deve ter um array "slides" com ${carouselSlides} objetos
-   - Cada slide tem: "slideNumber", "title" (texto curto para o slide), "content" (texto complementar), "imagePrompt" (prompt detalhado para a imagem do slide)
-   - Slide 1: Hook / Capa chamativa  
-   - Slides 2-${carouselSlides - 1}: Conteúdo principal com dicas/informações
-   - Slide ${carouselSlides}: CTA / Conclusão
-   - O design deve ser COESO entre slides (mesmas cores, fontes, estilo)
-   - Inclua texto legível nos slides (formatado para leitura rápida)
-   - A legenda principal deve resumir o conteúdo do carrossel e convidar a deslizar` : `Prompt de imagem DETALHADO:
-   - Descrição visual completa
-    - Paleta de cores sugerida: ${brandColors.length > 0 ? brandColors.join(', ') : 'moderna e vibrante'}
-    - Estilo: ${style}
-    - Aspect ratio: ${aspectRatio}
-    - Elementos de marca${includeLogo && logoUrl ? ' (incluir espaço para logo no canto inferior direito)' : ''}
-    - Sensação desejada
-    ${postType === 'story' ? '- Composição vertical (1080x1920)' : '- Composição quadrada ou 4:5 com espaço para texto'}`}
-
-6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
-
-6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
-
-7. Rationale: Explicação estratégica (1-2 linhas) sobre escolhas de tom e hashtags
-
-8. ${includeTextOverlay ? `TEXT OVERLAY (Texto na imagem):
-   - Gere um "headlineText" CURTO e IMPACTANTE (máximo 6 palavras)
-   - Deve complementar a imagem e chamar atenção imediatamente
-   - Se o usuário forneceu "Texto Sugerido", USE-O como base, mas melhore se necessário para caber na imagem
-   - Posicione em: ${textPosition}` : 'Não inclua overlay de texto na imagem'}
-
-RETORNE UM JSON VÁLIDO com este formato EXATO:
+RETORNE UM JSON VÁLIDO:
 {
   "variations": [
     {
       "variant": "A",
-      "caption": "legenda com hook + conteúdo + CTA",
-      "hashtags": ["#tag1", "#tag2"],
-      ${isCarousel ? `"slides": [
-        {
-          "slideNumber": 1,
-          "title": "Título do slide",
-          "content": "Conteúdo complementar",
-          "imagePrompt": {
-            "description": "descrição detalhada do slide",
-            "colors": ["cor1", "cor2"],
-            "style": "${style}",
-            "aspectRatio": "1:1",
-            "elements": ["elemento1"],
-            "mood": "sensação"
-          }
-        }
-      ],` : ''}
+      "caption": "legenda",
+      "hashtags": ["#tag"],
       "imagePrompt": {
-        "description": "descrição detalhada${isCarousel ? ' da imagem de capa' : ''}",
-        "colors": ["cor1", "cor2"],
+        "description": "detailed description in ENGLISH",
         "style": "${style}",
-        "aspectRatio": "${aspectRatio}",
-        "elements": ["elemento1", "elemento2"],
-        "mood": "sensação desejada"
+        "aspectRatio": "${aspectRatio}"
       },
-      "altText": "texto alternativo conciso",
-      "rationale": "explicação estratégica"${includeTextOverlay ? `,
-      "headlineText": "Texto curto para overlay",
-      "textOverlay": {
-        "position": "${textPosition}"
-      }` : ''}
-    },
-    {
-      "variant": "B",
-      ...
+      "altText": "SEO alt text",
+      "rationale": "strategy",
+      ${includeTextOverlay ? `"headlineText": "Texto para imagem",` : ''}
+      "textOverlay": { "position": "${textPosition}" }
     }
-  ],
-  "metadata": {
-    "objective": "${objective}",
-    "tone": "${tone}",
-    "postType": "${postType}",
-    "requiresReview": false,
-    "reviewReason": null
-  }
+  ]
 }`;
 
-    const userPrompt = `
-Empresa: ${companyName || 'empresa'}
-Público-alvo: ${targetAudience || 'geral'}
-Palavras-chave: ${keywords.join(', ') || 'inovação, qualidade'}
+    const userPrompt = `Company: ${safeCompanyName}\nObjective: ${objective}\nTheme: ${safeTheme}\nStyle: ${style}`;
 
-OBJETIVO: ${objective}
-TEMA: ${theme}
-${cta ? `CTA SUGERIDA: ${cta}` : ''}
-${customCaption ? `\nLEGENDA PERSONALIZADA DO USUÁRIO (use como base, ajuste e otimize mantendo a essência):\n"${customCaption}"` : ''}
-${includeTextOverlay ? `\nINCLUIR TEXTO NA IMAGEM (Overlay): Sim\nPosição: ${textPosition}\n${suggestedText ? `Texto Sugerido: "${suggestedText}"` : 'Gere um texto curto e impactante para a imagem.'}` : ''}
-
-Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem DETALHADOS.
-`;
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 4000,
+        contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\n" + userPrompt }] }],
+        generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
       }),
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errorText);
-
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Limite de taxa excedido. Tente novamente em alguns instantes.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos em Settings -> Workspace -> Usage.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      throw new Error(`AI API error: ${aiResponse.status} ${errorText}`);
-    }
+    if (!aiResponse.ok) throw new Error(`AI API Error: ${aiResponse.status}`);
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content;
+    const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error('Empty AI response');
 
-    if (!content) {
-      throw new Error('AI response não contém conteúdo válido');
-    }
-
-    console.log('AI response content:', content);
-
-    // Parse JSON da resposta
-    let result;
-    try {
-      // Extrair JSON do markdown se necessário
-      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-      result = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
-      return new Response(JSON.stringify({
-        error: 'Falha ao processar resposta da IA',
-        details: content
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Validar estrutura da resposta
-    if (!result.variations || !Array.isArray(result.variations) || result.variations.length !== 2) {
-      return new Response(JSON.stringify({
-        error: 'Resposta da IA em formato inválido',
-        expected: 'Array com 2 variações'
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log('Successfully generated post variations');
-
-    // Generate images for each variation using Lovable AI
-    console.log('Generating images for variations...');
+    const result = JSON.parse(content);
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     for (const variation of result.variations) {
       try {
-        const imagePrompt = `${variation.imagePrompt.description}. Style: ${variation.imagePrompt.style}. Colors: ${variation.imagePrompt.colors.join(', ')}. Mood: ${variation.imagePrompt.mood}. High quality Instagram post image, professional photography, ultra high resolution.`;
+        const desc = variation.imagePrompt?.description || 'Professional Instagram post';
+        const finalPrompt = encodeURIComponent(`${desc}, ${style} style, high quality`);
+        const width = 1080, height = postType === 'story' ? 1920 : 1080;
 
-        console.log(`Generating image for variant ${variation.variant} with prompt:`, imagePrompt);
+        const pollinationUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=${width}&height=${height}&nologo=true`;
+        const fallbackUrl = `https://loremflickr.com/${width}/${height}/${encodeURIComponent(variation.altText || 'business')}`;
 
-        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-image-preview',
-            messages: [{
-              role: 'user',
-              content: imagePrompt
-            }],
-            modalities: ['image', 'text']
-          })
-        });
+        let imgResponse = await fetch(pollinationUrl);
+        if (!imgResponse.ok) imgResponse = await fetch(fallbackUrl);
 
-        if (!imageResponse.ok) {
-          const errorText = await imageResponse.text();
-          console.error(`Image generation failed for variant ${variation.variant}:`, errorText);
-          throw new Error(`Image generation failed: ${errorText}`);
-        }
+        if (imgResponse.ok) {
+          const blob = await imgResponse.blob();
+          const fileName = `${crypto.randomUUID()}.png`;
+          const filePath = `${userId || 'anonymous'}/${fileName}`;
 
-        const imageData = await imageResponse.json();
-        const base64Image = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-        if (!base64Image) {
-          throw new Error('No image returned from AI');
-        }
-
-        // Convert base64 to blob and upload to Supabase Storage
-        const base64Data = base64Image.split(',')[1];
-        const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-
-        const fileName = `${crypto.randomUUID()}.png`;
-        const filePath = `${userId || 'anonymous'}/${fileName}`;
-
-        console.log(`Uploading image to path: ${filePath}`);
-
-        const { data: uploadData, error: uploadError } = await supabaseClient
-          .storage
-          .from('generated-images')
-          .upload(filePath, binaryData, {
-            contentType: 'image/png',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error('Storage upload error:', uploadError);
-          console.error('Upload error details:', JSON.stringify(uploadError));
-          // Try alternative path without userId
-          const altPath = `posts/${fileName}`;
-          console.log(`Retrying upload with alternative path: ${altPath}`);
-
-          const { data: retryData, error: retryError } = await supabaseClient
-            .storage
+          const { error: uploadError } = await supabaseClient.storage
             .from('generated-images')
-            .upload(altPath, binaryData, {
-              contentType: 'image/png',
-              upsert: false
-            });
+            .upload(filePath, await blob.arrayBuffer(), { contentType: 'image/png' });
 
-          if (retryError) {
-            console.error('Retry upload also failed:', retryError);
-            throw new Error(`Upload failed: ${retryError.message}`);
+          if (!uploadError) {
+            const { data: urlData } = supabaseClient.storage.from('generated-images').getPublicUrl(filePath);
+            variation.imageUrl = urlData.publicUrl;
+          } else {
+            variation.imageUrl = pollinationUrl;
           }
-
-          const { data: retryUrlData } = supabaseClient
-            .storage
-            .from('generated-images')
-            .getPublicUrl(altPath);
-
-          variation.imageUrl = retryUrlData.publicUrl;
-        } else {
-          // Get public URL
-          const { data: urlData } = supabaseClient
-            .storage
-            .from('generated-images')
-            .getPublicUrl(filePath);
-
-          variation.imageUrl = urlData.publicUrl;
         }
-        console.log(`Image generated and uploaded for variant ${variation.variant}:`, variation.imageUrl);
-
-      } catch (imageError: any) {
-        console.error(`Failed to generate image for variant ${variation.variant}:`, imageError);
-        variation.imageUrl = null;
-        variation.imageError = imageError.message;
+      } catch (e) {
+        console.error('Image loop error:', e);
+        variation.imageUrl = `https://loremflickr.com/1080/1080/business`;
       }
     }
 
@@ -402,11 +199,8 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
     });
 
   } catch (error: any) {
-    console.error('Error in generate-post function:', error);
-    return new Response(JSON.stringify({
-      error: error.message || 'Erro ao gerar post',
-      details: error.toString()
-    }), {
+    console.error('Final Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
