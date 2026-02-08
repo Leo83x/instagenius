@@ -93,6 +93,8 @@ serve(async (req) => {
     // Determinar aspect ratio baseado no tipo de post
     const aspectRatio = postType === 'story' ? '9:16' : '1:1';
     const maxCaptionLength = postType === 'story' ? 125 : 300;
+    const isCarousel = postType === 'carousel';
+    const carouselSlides = isCarousel ? 5 : 0;
 
     // System prompt detalhado conforme especificações
     const systemPrompt = `Você é um especialista em marketing digital e Instagram Business. 
@@ -120,14 +122,22 @@ REGRAS OBRIGATÓRIAS:
    - 2-4 de CAUDA LONGA (específicas, menos concorridas)
    - NUNCA usar hashtags banidas (#like4like, #follow4follow)
 
-5. Prompt de imagem DETALHADO:
+5. ${isCarousel ? `CARROSSEL (${carouselSlides} slides):
+   - Cada variação deve ter um array "slides" com ${carouselSlides} objetos
+   - Cada slide tem: "slideNumber", "title" (texto curto para o slide), "content" (texto complementar), "imagePrompt" (prompt detalhado para a imagem do slide)
+   - Slide 1: Hook / Capa chamativa  
+   - Slides 2-${carouselSlides - 1}: Conteúdo principal com dicas/informações
+   - Slide ${carouselSlides}: CTA / Conclusão
+   - O design deve ser COESO entre slides (mesmas cores, fontes, estilo)
+   - Inclua texto legível nos slides (formatado para leitura rápida)
+   - A legenda principal deve resumir o conteúdo do carrossel e convidar a deslizar` : `Prompt de imagem DETALHADO:
    - Descrição visual completa
     - Paleta de cores sugerida: ${brandColors.length > 0 ? brandColors.join(', ') : 'moderna e vibrante'}
     - Estilo: ${style}
     - Aspect ratio: ${aspectRatio}
     - Elementos de marca${includeLogo && logoUrl ? ' (incluir espaço para logo no canto inferior direito)' : ''}
     - Sensação desejada
-    ${postType === 'story' ? '- Composição vertical (1080x1920)' : '- Composição quadrada ou 4:5 com espaço para texto'}
+    ${postType === 'story' ? '- Composição vertical (1080x1920)' : '- Composição quadrada ou 4:5 com espaço para texto'}`}
 
 6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
 
@@ -140,8 +150,23 @@ RETORNE UM JSON VÁLIDO com este formato EXATO:
       "variant": "A",
       "caption": "legenda com hook + conteúdo + CTA",
       "hashtags": ["#tag1", "#tag2"],
+      ${isCarousel ? `"slides": [
+        {
+          "slideNumber": 1,
+          "title": "Título do slide",
+          "content": "Conteúdo complementar",
+          "imagePrompt": {
+            "description": "descrição detalhada do slide",
+            "colors": ["cor1", "cor2"],
+            "style": "${style}",
+            "aspectRatio": "1:1",
+            "elements": ["elemento1"],
+            "mood": "sensação"
+          }
+        }
+      ],` : ''}
       "imagePrompt": {
-        "description": "descrição detalhada",
+        "description": "descrição detalhada${isCarousel ? ' da imagem de capa' : ''}",
         "colors": ["cor1", "cor2"],
         "style": "${style}",
         "aspectRatio": "${aspectRatio}",

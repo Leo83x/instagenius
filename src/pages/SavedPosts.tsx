@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Calendar, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trash2, Calendar, Download, Grid3X3, List } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { InstagramGridPreview } from "@/components/InstagramGridPreview";
 
 export default function SavedPosts() {
   const navigate = useNavigate();
@@ -194,79 +196,99 @@ export default function SavedPosts() {
           </p>
         </div>
 
-        {posts.length === 0 ? (
-          <Card className="p-12 text-center">
-            <p className="text-muted-foreground">Nenhum post salvo ainda</p>
-          </Card>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <Card key={post.id} className="p-6 space-y-4">
-                {post.image_url && (
-                  <img
-                    src={post.image_url}
-                    alt={post.alt_text || "Post"}
-                    className="w-full aspect-square object-cover rounded-lg"
-                  />
-                )}
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">{post.theme}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-3">
-                    {post.caption}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {post.hashtags.slice(0, 3).map((tag: string, i: number) => (
-                      <span key={i} className="text-xs text-primary">
-                        {tag}
-                      </span>
-                    ))}
-                    {post.hashtags.length > 3 && (
-                      <span className="text-xs text-muted-foreground">
-                        +{post.hashtags.length - 3}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadPost(post)}
-                    className="flex-1"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    Baixar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => schedulePost(post.id)}
-                    className="flex-1"
-                  >
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Agendar
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => publishNow(post)}
-                    className="flex-1"
-                  >
-                    Publicar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deletePost(post.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+        <Tabs defaultValue="list" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="list" className="flex items-center gap-1">
+              <List className="h-3 w-3" />
+              Lista
+            </TabsTrigger>
+            <TabsTrigger value="grid" className="flex items-center gap-1">
+              <Grid3X3 className="h-3 w-3" />
+              Preview do Grid
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list">
+            {posts.length === 0 ? (
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">Nenhum post salvo ainda</p>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {posts.map((post) => (
+                  <Card key={post.id} className="p-6 space-y-4">
+                    {post.image_url && (
+                      <img
+                        src={post.image_url}
+                        alt={post.alt_text || "Post"}
+                        className="w-full aspect-square object-cover rounded-lg"
+                      />
+                    )}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">{post.theme}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3">
+                        {post.caption}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {post.hashtags.slice(0, 3).map((tag: string, i: number) => (
+                          <span key={i} className="text-xs text-primary">
+                            {tag}
+                          </span>
+                        ))}
+                        {post.hashtags.length > 3 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{post.hashtags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadPost(post)}
+                        className="flex-1"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Baixar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => schedulePost(post.id)}
+                        className="flex-1"
+                      >
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Agendar
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => publishNow(post)}
+                        className="flex-1"
+                      >
+                        Publicar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deletePost(post.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="grid">
+            <InstagramGridPreview />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
 }
+

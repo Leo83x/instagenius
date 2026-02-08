@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { ThemeCalendar } from "@/components/ThemeCalendar";
+import { SeasonalCalendar } from "@/components/SeasonalCalendar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -183,6 +184,8 @@ export default function ThemeSuggestions() {
         {savedThemes.length > 0 && (
           <ThemeCalendar savedThemes={savedThemes} />
         )}
+
+        <SeasonalCalendar />
 
         {suggestions.length > 0 && (
           <div className="space-y-4">

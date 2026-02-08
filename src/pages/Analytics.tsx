@@ -5,22 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, MessageCircle, Share2, Eye, TrendingUp, RefreshCw, Hash, Clock, Users } from "lucide-react";
+import { Heart, MessageCircle, Share2, Eye, TrendingUp, RefreshCw, Hash, Clock, Users, Brain, MessageCircleHeart } from "lucide-react";
 import { toast } from "sonner";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BestTimeInsight } from "@/components/BestTimeInsight";
+import { SentimentAnalysis } from "@/components/SentimentAnalysis";
+import { PredictiveAnalytics } from "@/components/PredictiveAnalytics";
 
 export default function Analytics() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hashtagData, setHashtagData] = useState<any[]>([]);
-  const [timeData, setTimeData] = useState<any[]>([]);
-  const [growthData, setGrowthData] = useState<any[]>([]);
 
   useEffect(() => {
     loadPostsWithAnalytics();
     loadHashtagPerformance();
-    loadTimeAnalysis();
-    loadGrowthData();
   }, []);
 
   const loadPostsWithAnalytics = async () => {
@@ -28,13 +27,9 @@ export default function Analytics() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load posts with their analytics
       const { data: postsData } = await supabase
         .from("generated_posts")
-        .select(`
-          *,
-          post_analytics (*)
-        `)
+        .select(`*, post_analytics (*)`)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -83,29 +78,6 @@ export default function Analytics() {
     }
   };
 
-  const loadTimeAnalysis = async () => {
-    const mockTimeData = [
-      { hour: "6h", engagement: 45 },
-      { hour: "9h", engagement: 120 },
-      { hour: "12h", engagement: 200 },
-      { hour: "15h", engagement: 180 },
-      { hour: "18h", engagement: 320 },
-      { hour: "21h", engagement: 280 },
-      { hour: "0h", engagement: 80 }
-    ];
-    setTimeData(mockTimeData);
-  };
-
-  const loadGrowthData = async () => {
-    const mockGrowthData = [
-      { date: "Sem 1", followers: 1200, posts: 3 },
-      { date: "Sem 2", followers: 1350, posts: 5 },
-      { date: "Sem 3", followers: 1480, posts: 4 },
-      { date: "Sem 4", followers: 1720, posts: 6 }
-    ];
-    setGrowthData(mockGrowthData);
-  };
-
   const refreshAnalytics = async (postId?: string) => {
     const toastId = toast.loading("Atualizando métricas...");
     try {
@@ -125,10 +97,6 @@ export default function Analytics() {
       console.error("Error refreshing analytics:", error);
       toast.error(error.message || "Erro ao atualizar métricas", { id: toastId });
     }
-  };
-
-  const refreshAllAnalytics = async () => {
-    await refreshAnalytics();
   };
 
   if (loading) {
@@ -151,115 +119,106 @@ export default function Analytics() {
           <div className="space-y-2">
             <h1 className="text-3xl font-display font-bold">Analytics</h1>
             <p className="text-muted-foreground">
-              Análise detalhada de performance e insights
+              Análise detalhada, insights preditivos e sentimento
             </p>
           </div>
-          <Button onClick={refreshAllAnalytics} variant="outline">
+          <Button onClick={() => refreshAnalytics()} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar Todas as Métricas
           </Button>
         </div>
 
         <Tabs defaultValue="posts" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
-            <TabsTrigger value="timing">Horários</TabsTrigger>
-            <TabsTrigger value="growth">Crescimento</TabsTrigger>
+            <TabsTrigger value="timing" className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Horários
+            </TabsTrigger>
+            <TabsTrigger value="sentiment" className="flex items-center gap-1">
+              <MessageCircleHeart className="h-3 w-3" />
+              Sentimento
+            </TabsTrigger>
+            <TabsTrigger value="predictive" className="flex items-center gap-1">
+              <Brain className="h-3 w-3" />
+              Preditivo
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts" className="space-y-6">
-
-        {posts.length === 0 ? (
-          <Card className="p-8 md:p-12 text-center">
-            <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg md:text-xl font-semibold mb-2">Nenhum post ainda</h3>
-            <p className="text-sm md:text-base text-muted-foreground">
-              Publique seus primeiros posts para ver as análises aqui
-            </p>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:gap-6">
-            {posts.map((post) => {
-              const analytics = post.post_analytics?.[0];
-              
-              return (
-                <Card key={post.id} className="p-4 md:p-6 shadow-smooth hover:shadow-glow transition-smooth">
-                  <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-                    {/* Post Image */}
-                    {post.image_url && (
-                      <div className="w-full md:w-40 h-40 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-                        <img 
-                          src={post.image_url} 
-                          alt={post.alt_text || "Post"} 
-                          className="w-full h-full object-cover"
-                        />
+            {posts.length === 0 ? (
+              <Card className="p-8 md:p-12 text-center">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg md:text-xl font-semibold mb-2">Nenhum post ainda</h3>
+                <p className="text-sm md:text-base text-muted-foreground">
+                  Publique seus primeiros posts para ver as análises aqui
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:gap-6">
+                {posts.map((post) => {
+                  const analytics = post.post_analytics?.[0];
+                  return (
+                    <Card key={post.id} className="p-4 md:p-6 shadow-smooth hover:shadow-glow transition-smooth">
+                      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                        {post.image_url && (
+                          <div className="w-full md:w-40 h-40 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                            <img src={post.image_url} alt={post.alt_text || "Post"} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <Badge variant="secondary">{post.post_type}</Badge>
+                              <Badge variant="outline">{post.variant}</Badge>
+                            </div>
+                            <p className="text-sm line-clamp-2 text-muted-foreground">{post.caption}</p>
+                          </div>
+                          {analytics ? (
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Heart className="h-4 w-4 text-pink-500" />
+                                <span className="font-medium">{analytics.likes_count}</span>
+                                <span className="text-muted-foreground hidden md:inline">Curtidas</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <MessageCircle className="h-4 w-4 text-blue-500" />
+                                <span className="font-medium">{analytics.comments_count}</span>
+                                <span className="text-muted-foreground hidden md:inline">Comentários</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Share2 className="h-4 w-4 text-green-500" />
+                                <span className="font-medium">{analytics.shares_count}</span>
+                                <span className="text-muted-foreground hidden md:inline">Compartilh.</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Eye className="h-4 w-4 text-purple-500" />
+                                <span className="font-medium">{analytics.reach}</span>
+                                <span className="text-muted-foreground hidden md:inline">Alcance</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <TrendingUp className="h-4 w-4 text-orange-500" />
+                                <span className="font-medium">{analytics.engagement_rate}%</span>
+                                <span className="text-muted-foreground hidden md:inline">Engaj.</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">
+                              Conecte sua conta Instagram para ver métricas
+                            </div>
+                          )}
+                          <Button variant="outline" size="sm" onClick={() => refreshAnalytics(post.id)} className="w-full md:w-auto">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Atualizar Métricas
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                    
-                    {/* Post Info */}
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <Badge variant="secondary">{post.post_type}</Badge>
-                          <Badge variant="outline">{post.variant}</Badge>
-                        </div>
-                        <p className="text-sm line-clamp-2 text-muted-foreground">
-                          {post.caption}
-                        </p>
-                      </div>
-
-                      {/* Analytics Stats */}
-                      {analytics ? (
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Heart className="h-4 w-4 text-pink-500" />
-                            <span className="font-medium">{analytics.likes_count}</span>
-                            <span className="text-muted-foreground hidden md:inline">Curtidas</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <MessageCircle className="h-4 w-4 text-blue-500" />
-                            <span className="font-medium">{analytics.comments_count}</span>
-                            <span className="text-muted-foreground hidden md:inline">Comentários</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Share2 className="h-4 w-4 text-green-500" />
-                            <span className="font-medium">{analytics.shares_count}</span>
-                            <span className="text-muted-foreground hidden md:inline">Compartilh.</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Eye className="h-4 w-4 text-purple-500" />
-                            <span className="font-medium">{analytics.reach}</span>
-                            <span className="text-muted-foreground hidden md:inline">Alcance</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <TrendingUp className="h-4 w-4 text-orange-500" />
-                            <span className="font-medium">{analytics.engagement_rate}%</span>
-                            <span className="text-muted-foreground hidden md:inline">Engaj.</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          Conecte sua conta Instagram para ver métricas
-                        </div>
-                      )}
-
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => refreshAnalytics(post.id)}
-                        className="w-full md:w-auto"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Atualizar Métricas
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="hashtags" className="space-y-6">
@@ -289,66 +248,15 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="timing" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Clock className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Melhores Horários de Engajamento</h2>
-              </div>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={timeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="engagement" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={3}
-                    name="Engajamento"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Horários com maior engajamento: <strong>18h - 21h</strong>
-              </p>
-            </Card>
+            <BestTimeInsight />
           </TabsContent>
 
-          <TabsContent value="growth" className="space-y-6">
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Users className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Crescimento de Seguidores</h2>
-              </div>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={growthData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="followers" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={3}
-                    name="Seguidores"
-                  />
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="posts" 
-                    stroke="hsl(var(--accent))" 
-                    strokeWidth={2}
-                    name="Posts Publicados"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card>
+          <TabsContent value="sentiment" className="space-y-6">
+            <SentimentAnalysis />
+          </TabsContent>
+
+          <TabsContent value="predictive" className="space-y-6">
+            <PredictiveAnalytics />
           </TabsContent>
         </Tabs>
       </main>
