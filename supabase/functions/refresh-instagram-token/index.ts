@@ -46,7 +46,8 @@ Deno.serve(async (req) => {
     console.log("Refreshing Instagram token...");
 
     // Refresh the long-lived token (extends for another 60 days)
-    const refreshUrl = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${Deno.env.get(
+    const version = "v20.0";
+    const refreshUrl = `https://graph.facebook.com/${version}/oauth/access_token?grant_type=fb_exchange_token&client_id=${Deno.env.get(
       "FACEBOOK_APP_ID"
     )}&client_secret=${Deno.env.get(
       "FACEBOOK_APP_SECRET"
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       console.error("Token refresh error:", data.error);
       throw new Error(
         data.error.message ||
-          "Erro ao renovar token. Por favor, reconecte sua conta."
+        "Erro ao renovar token. Por favor, reconecte sua conta."
       );
     }
 

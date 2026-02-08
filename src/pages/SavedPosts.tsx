@@ -169,10 +169,11 @@ export default function SavedPosts() {
       }
     } catch (error: any) {
       console.error("Error publishing:", error);
+      const errorMessage = error.message || "Error publishing to Instagram";
       if (toastId) {
-        toast.error(error.message || "Error publishing to Instagram", { id: toastId });
+        toast.error(errorMessage, { id: toastId });
       } else {
-        toast.error(error.message || "Error publishing to Instagram");
+        toast.error(errorMessage);
       }
     }
   };
