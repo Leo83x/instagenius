@@ -40,7 +40,7 @@ export default function HashtagExplorer() {
     if (!error && data) {
       setHashtags(data.map(h => ({
         tag: h.hashtag,
-        category: h.category || 'Geral',
+        category: h.category || 'General',
         score: h.trending_score || 0,
         estimatedReach: 0,
       })));
@@ -48,15 +48,15 @@ export default function HashtagExplorer() {
   };
 
   const filteredHashtags = searchTerm
-    ? hashtags.filter(h => 
-        h.tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        h.category.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? hashtags.filter(h =>
+      h.tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      h.category.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : hashtags;
 
   const searchHashtags = async () => {
     if (!keywords.trim()) {
-      toast.error('Digite palavras-chave para buscar');
+      toast.error('Enter keywords to search');
       return;
     }
 
@@ -65,9 +65,9 @@ export default function HashtagExplorer() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       const { data, error } = await supabase.functions.invoke('search-hashtags', {
-        body: { 
+        body: {
           keywords: keywords.trim(),
         },
         headers: {
@@ -79,47 +79,47 @@ export default function HashtagExplorer() {
 
       if (data?.hashtags) {
         setHashtags(data.hashtags);
-        toast.success(`${data.hashtags.length} hashtags encontradas!`);
+        toast.success(`${data.hashtags.length} hashtags found!`);
       } else {
-        toast.error('Nenhuma hashtag encontrada');
+        toast.error('No hashtags found');
       }
     } catch (error: any) {
       console.error('Error searching hashtags:', error);
-      toast.error('Erro ao buscar hashtags: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Error searching hashtags: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSearching(false);
     }
   };
 
   const categoryColors: Record<string, string> = {
-    "Marca": "bg-gradient-to-br from-purple-500/10 to-pink-500/10 text-purple-700 border-purple-200",
-    "Nicho": "bg-gradient-to-br from-blue-500/10 to-cyan-500/10 text-blue-700 border-blue-200",
-    "Cauda Longa": "bg-gradient-to-br from-green-500/10 to-emerald-500/10 text-green-700 border-green-200",
-    "Geral": "bg-gradient-to-br from-gray-500/10 to-slate-500/10 text-gray-700 border-gray-200",
+    "Brand": "bg-gradient-to-br from-purple-500/10 to-pink-500/10 text-purple-700 border-purple-200",
+    "Niche": "bg-gradient-to-br from-blue-500/10 to-cyan-500/10 text-blue-700 border-blue-200",
+    "Long Tail": "bg-gradient-to-br from-green-500/10 to-emerald-500/10 text-green-700 border-green-200",
+    "General": "bg-gradient-to-br from-gray-500/10 to-slate-500/10 text-gray-700 border-gray-200",
   };
 
   const copyHashtag = (hashtag: string) => {
     navigator.clipboard.writeText(hashtag);
     setCopiedHashtag(hashtag);
-    toast.success(`${hashtag} copiada!`);
+    toast.success(`${hashtag} copied!`);
     setTimeout(() => setCopiedHashtag(null), 2000);
   };
 
   const copyAllHashtags = () => {
     const allTags = filteredHashtags.map(h => h.tag).join(" ");
     navigator.clipboard.writeText(allTags);
-    toast.success(`${filteredHashtags.length} hashtags copiadas!`);
+    toast.success(`${filteredHashtags.length} hashtags copied!`);
   };
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-4 md:py-8 space-y-6 md:space-y-8">
         <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Explorador de Hashtags</h1>
+          <h1 className="text-2xl md:text-3xl font-display font-bold">Hashtag Explorer</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Busque hashtags estratégicas baseadas no seu negócio
+            Search for strategic hashtags based on your business
           </p>
         </div>
 
@@ -128,21 +128,21 @@ export default function HashtagExplorer() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Palavras-chave sobre seu negócio
+                Keywords about your business
               </label>
               <Textarea
-                placeholder="Ex: fotografia, casamentos, eventos corporativos, retratos profissionais..."
+                placeholder="Ex: photography, weddings, corporate events, professional portraits..."
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
                 className="min-h-[100px]"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Digite palavras-chave relacionadas ao seu negócio, produtos ou serviços
+                Enter keywords related to your business, products or services
               </p>
             </div>
-            
-            <Button 
-              onClick={searchHashtags} 
+
+            <Button
+              onClick={searchHashtags}
               disabled={isSearching}
               className="w-full"
               size="lg"
@@ -150,12 +150,12 @@ export default function HashtagExplorer() {
               {isSearching ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Buscando hashtags inteligentes...
+                  Searching for smart hashtags...
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Buscar Hashtags com IA
+                  Search Hashtags with AI
                 </>
               )}
             </Button>
@@ -169,7 +169,7 @@ export default function HashtagExplorer() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Filtrar hashtags..."
+                  placeholder="Filter hashtags..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -177,7 +177,7 @@ export default function HashtagExplorer() {
               </div>
               <Button onClick={copyAllHashtags} variant="outline">
                 <Copy className="h-4 w-4 mr-2" />
-                Copiar Todas
+                Copy All
               </Button>
             </div>
           </Card>
@@ -187,8 +187,8 @@ export default function HashtagExplorer() {
         {hashtags.length > 0 ? (
           <div className="grid gap-3 md:gap-4">
             {filteredHashtags.map((hashtag) => (
-              <Card 
-                key={hashtag.tag} 
+              <Card
+                key={hashtag.tag}
                 className="p-4 md:p-6 shadow-smooth hover:shadow-glow transition-smooth"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -196,28 +196,28 @@ export default function HashtagExplorer() {
                     <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                       <Hash className="h-5 w-5 md:h-6 md:w-6 text-white" />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="text-base md:text-lg font-semibold truncate">{hashtag.tag}</h3>
-                        <Badge 
-                          variant="outline" 
-                          className={categoryColors[hashtag.category] || categoryColors.Geral}
+                        <Badge
+                          variant="outline"
+                          className={categoryColors[hashtag.category] || categoryColors.General}
                         >
                           {hashtag.category}
                         </Badge>
                       </div>
-                      
+
                       {hashtag.description && (
                         <p className="text-xs md:text-sm text-muted-foreground mb-2">
                           {hashtag.description}
                         </p>
                       )}
-                      
+
                       <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
-                          <span>Relevância: {hashtag.score}/100</span>
+                          <span>Relevance: {hashtag.score}/100</span>
                         </div>
                         {hashtag.estimatedReach && hashtag.estimatedReach > 0 && (
                           <div>
@@ -237,12 +237,12 @@ export default function HashtagExplorer() {
                     {copiedHashtag === hashtag.tag ? (
                       <>
                         <Check className="h-4 w-4 mr-2" />
-                        Copiado!
+                        Copied!
                       </>
                     ) : (
                       <>
                         <Copy className="h-4 w-4 mr-2" />
-                        Copiar
+                        Copy
                       </>
                     )}
                   </Button>
@@ -253,17 +253,17 @@ export default function HashtagExplorer() {
         ) : hasSearched ? (
           <Card className="p-8 md:p-12 text-center">
             <Hash className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg md:text-xl font-semibold mb-2">Nenhuma hashtag encontrada</h3>
+            <h3 className="text-lg md:text-xl font-semibold mb-2">No hashtags found</h3>
             <p className="text-sm md:text-base text-muted-foreground">
-              Tente buscar com outras palavras-chave
+              Try searching with other keywords
             </p>
           </Card>
         ) : (
           <Card className="p-8 md:p-12 text-center">
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary" />
-            <h3 className="text-lg md:text-xl font-semibold mb-2">Busque hashtags inteligentes</h3>
+            <h3 className="text-lg md:text-xl font-semibold mb-2">Search for smart hashtags</h3>
             <p className="text-sm md:text-base text-muted-foreground">
-              Digite palavras-chave sobre seu negócio e deixe a IA encontrar as melhores hashtags para você
+              Enter keywords about your business and let AI find the best hashtags for you
             </p>
           </Card>
         )}

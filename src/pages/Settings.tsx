@@ -16,7 +16,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   const [companyName, setCompanyName] = useState("");
   const [category, setCategory] = useState("");
   const [bio, setBio] = useState("");
@@ -68,7 +68,7 @@ export default function Settings() {
       }
     } catch (error: any) {
       console.error("Error loading profile:", error);
-      toast.error("Erro ao carregar perfil");
+      toast.error("Error loading profile");
     } finally {
       setLoading(false);
     }
@@ -79,12 +79,12 @@ export default function Settings() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem");
+      toast.error("Please select an image");
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Imagem muito grande. Máximo 2MB");
+      toast.error("Image too large. Max 2MB");
       return;
     }
 
@@ -107,10 +107,10 @@ export default function Settings() {
         .getPublicUrl(fileName);
 
       setLogoUrl(urlData.publicUrl);
-      toast.success("Logo enviado com sucesso!");
+      toast.success("Logo uploaded successfully!");
     } catch (error: any) {
       console.error("Error uploading logo:", error);
-      toast.error("Erro ao enviar logo");
+      toast.error("Error uploading logo");
     } finally {
       setUploading(false);
     }
@@ -118,7 +118,7 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!companyName.trim()) {
-      toast.error("Nome da empresa é obrigatório");
+      toast.error("Company name is required");
       return;
     }
 
@@ -168,11 +168,11 @@ export default function Settings() {
 
       if (error) throw error;
 
-      toast.success("Perfil salvo com sucesso!");
+      toast.success("Profile saved successfully!");
       navigate("/");
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      toast.error(error.message || "Erro ao salvar perfil");
+      toast.error(error.message || "Error saving profile");
     } finally {
       setSaving(false);
     }
@@ -191,80 +191,80 @@ export default function Settings() {
       <Header />
       <div className="container py-8 max-w-4xl">
         <Card className="p-8">
-          <h1 className="text-3xl font-display font-bold mb-2">Configurações</h1>
+          <h1 className="text-3xl font-display font-bold mb-2">Settings</h1>
           <p className="text-muted-foreground mb-8">
-            Configure o perfil da sua empresa para gerar conteúdo personalizado
+            Configure your company profile to generate personalized content
           </p>
 
           <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <Label htmlFor="companyName">Nome da Empresa *</Label>
+                <Label htmlFor="companyName">Company Name *</Label>
                 <Input
                   id="companyName"
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Minha Empresa"
+                  placeholder="My Company"
                 />
               </div>
 
               <div>
-                <Label htmlFor="category">Categoria / Nicho</Label>
+                <Label htmlFor="category">Category / Niche</Label>
                 <Input
                   id="category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Ex: Tecnologia, Moda, Alimentação"
+                  placeholder="Ex: Technology, Fashion, Food"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="bio">Bio Curta</Label>
+              <Label htmlFor="bio">Short Bio</Label>
               <Textarea
                 id="bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Breve descrição sobre sua empresa..."
+                placeholder="Brief description about your company..."
                 rows={3}
               />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <Label htmlFor="defaultTone">Tom de Voz Padrão</Label>
+                <Label htmlFor="defaultTone">Default Tone of Voice</Label>
                 <Select value={defaultTone} onValueChange={setDefaultTone}>
                   <SelectTrigger id="defaultTone">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="professional">Profissional</SelectItem>
-                    <SelectItem value="casual">Casual / Amigável</SelectItem>
-                    <SelectItem value="emotional">Emocional</SelectItem>
-                    <SelectItem value="humorous">Bem-humorado</SelectItem>
-                    <SelectItem value="educational">Educativo</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="casual">Casual / Friendly</SelectItem>
+                    <SelectItem value="emotional">Emotional</SelectItem>
+                    <SelectItem value="humorous">Humorous</SelectItem>
+                    <SelectItem value="educational">Educational</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="targetAudience">Público-Alvo</Label>
+                <Label htmlFor="targetAudience">Target Audience</Label>
                 <Input
                   id="targetAudience"
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
-                  placeholder="Ex: Jovens adultos, Empresários"
+                  placeholder="Ex: Young adults, Entrepreneurs"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="keywords">Palavras-chave (separadas por vírgula)</Label>
+              <Label htmlFor="keywords">Keywords (comma separated)</Label>
               <Input
                 id="keywords"
                 value={keywordsInput}
                 onChange={(e) => setKeywordsInput(e.target.value)}
-                placeholder="inovação, qualidade, sustentabilidade"
+                placeholder="innovation, quality, sustainability"
               />
             </div>
 
@@ -274,7 +274,7 @@ export default function Settings() {
                 id="instagramHandle"
                 value={instagramHandle}
                 onChange={(e) => setInstagramHandle(e.target.value)}
-                placeholder="@minhaempresa"
+                placeholder="@mycompany"
               />
             </div>
 
@@ -284,12 +284,12 @@ export default function Settings() {
                 id="websiteUrl"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
-                placeholder="https://minhaempresa.com"
+                placeholder="https://mycompany.com"
               />
             </div>
 
             <div>
-              <Label htmlFor="maxHashtags">Máximo de Hashtags por Post</Label>
+              <Label htmlFor="maxHashtags">Max Hashtags per Post</Label>
               <Input
                 id="maxHashtags"
                 type="number"
@@ -301,7 +301,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <Label>Cores da Marca</Label>
+              <Label>Brand Colors</Label>
               <div className="flex gap-2 mt-2">
                 {brandColors.map((color, index) => (
                   <Input
@@ -320,7 +320,7 @@ export default function Settings() {
             </div>
 
             <div>
-              <Label htmlFor="logo">Logo da Empresa</Label>
+              <Label htmlFor="logo">Company Logo</Label>
               <div className="flex items-center gap-4 mt-2">
                 {logoUrl && (
                   <img
@@ -350,12 +350,12 @@ export default function Settings() {
                         {uploading ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Enviando...
+                            Uploading...
                           </>
                         ) : (
                           <>
                             <Upload className="h-4 w-4 mr-2" />
-                            {logoUrl ? "Alterar Logo" : "Upload Logo"}
+                            {logoUrl ? "Change Logo" : "Upload Logo"}
                           </>
                         )}
                       </span>
@@ -371,7 +371,7 @@ export default function Settings() {
                 onClick={() => navigate("/")}
                 disabled={saving}
               >
-                Cancelar
+                Cancel
               </Button>
               <Button
                 onClick={handleSave}
@@ -380,10 +380,10 @@ export default function Settings() {
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
+                    Saving...
                   </>
                 ) : (
-                  "Salvar Configurações"
+                  "Save Settings"
                 )}
               </Button>
             </div>

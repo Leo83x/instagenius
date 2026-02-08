@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ptBR } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,9 +43,8 @@ function DraggablePost({ post }: { post: SavedPost }) {
   return (
     <div
       ref={drag}
-      className={`p-3 border rounded-lg cursor-move hover:bg-muted transition-colors ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={`p-3 border rounded-lg cursor-move hover:bg-muted transition-colors ${isDragging ? "opacity-50" : ""
+        }`}
     >
       <div className="flex items-center gap-2">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -57,11 +56,11 @@ function DraggablePost({ post }: { post: SavedPost }) {
   );
 }
 
-function DroppableCalendarDay({ 
-  date, 
-  onDrop 
-}: { 
-  date: Date; 
+function DroppableCalendarDay({
+  date,
+  onDrop
+}: {
+  date: Date;
   onDrop: (postId: string, date: Date) => void;
 }) {
   const [{ isOver }, drop] = useDrop(() => ({
@@ -77,11 +76,10 @@ function DroppableCalendarDay({
   return (
     <div
       ref={drop}
-      className={`min-h-[60px] p-2 border rounded transition-colors ${
-        isOver ? "bg-primary/10 border-primary" : ""
-      }`}
+      className={`min-h-[60px] p-2 border rounded transition-colors ${isOver ? "bg-primary/10 border-primary" : ""
+        }`}
     >
-      <div className="text-xs font-medium mb-1">{format(date, "d", { locale: ptBR })}</div>
+      <div className="text-xs font-medium mb-1">{format(date, "d", { locale: enUS })}</div>
     </div>
   );
 }
@@ -153,7 +151,7 @@ function ScheduleCalendarContent() {
         .maybeSingle();
 
       if (!profile?.instagram_access_token) {
-        toast.error("Conecte sua conta do Instagram primeiro");
+        toast.error("Connect your Instagram account first");
         return;
       }
 
@@ -171,18 +169,18 @@ function ScheduleCalendarContent() {
 
       if (error) throw error;
 
-      toast.success(`Post agendado para ${format(dropDate, "dd/MM/yyyy", { locale: ptBR })}`);
+      toast.success(`Post scheduled for ${format(dropDate, "dd/MM/yyyy", { locale: enUS })}`);
       loadScheduledPosts();
       loadSavedPosts();
     } catch (error: any) {
       console.error("Error scheduling post:", error);
-      toast.error("Erro ao agendar post");
+      toast.error("Error scheduling post");
     }
   };
 
   const handleSchedule = async () => {
     if (!date) {
-      toast.error("Selecione uma data");
+      toast.error("Select a date");
       return;
     }
 
@@ -198,7 +196,7 @@ function ScheduleCalendarContent() {
         .maybeSingle();
 
       if (!profile?.instagram_access_token) {
-        toast.error("Conecte sua conta do Instagram primeiro em Configurações");
+        toast.error("Connect your Instagram account first in Settings");
         setLoading(false);
         return;
       }
@@ -216,12 +214,12 @@ function ScheduleCalendarContent() {
 
       if (error) throw error;
 
-      toast.success("Post agendado! Será publicado automaticamente no Instagram.");
+      toast.success("Post scheduled! It will be published automatically on Instagram.");
       setShowDialog(false);
       loadScheduledPosts();
     } catch (error: any) {
       console.error("Error scheduling post:", error);
-      toast.error("Erro ao agendar post");
+      toast.error("Error scheduling post");
     } finally {
       setLoading(false);
     }
@@ -236,12 +234,12 @@ function ScheduleCalendarContent() {
 
       if (error) throw error;
 
-      toast.success("Agendamento removido");
+      toast.success("Schedule removed");
       loadScheduledPosts();
       loadSavedPosts();
     } catch (error: any) {
       console.error("Error deleting schedule:", error);
-      toast.error("Erro ao remover agendamento");
+      toast.error("Error removing schedule");
     }
   };
 
@@ -250,16 +248,15 @@ function ScheduleCalendarContent() {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="p-6 lg:col-span-2">
-        <h2 className="text-xl font-display font-bold mb-4">Calendário de Publicações</h2>
+        <h2 className="text-xl font-display font-bold mb-4">Content Calendar</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Arraste posts salvos para o calendário para agendá-los
+          Drag saved posts to the calendar to schedule them
         </p>
         <div className="flex justify-center mb-4">
           <Calendar
             mode="single"
             selected={date}
             onSelect={setDate}
-            locale={ptBR}
             className="rounded-md border"
             components={{
               Day: ({ date: dayDate }) => (
@@ -272,22 +269,22 @@ function ScheduleCalendarContent() {
           <DialogTrigger asChild>
             <Button className="w-full">
               <CalendarIcon className="h-4 w-4 mr-2" />
-              Agendar Manualmente
+              Manual Schedule
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Agendar Publicação</DialogTitle>
+              <DialogTitle>Schedule Post</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label>Data Selecionada</Label>
+                <Label>Selected Date</Label>
                 <div className="text-sm text-muted-foreground">
-                  {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : "Nenhuma data selecionada"}
+                  {date ? format(date, "dd/MM/yyyy") : "No date selected"}
                 </div>
               </div>
               <div>
-                <Label htmlFor="time">Horário</Label>
+                <Label htmlFor="time">Time</Label>
                 <Input
                   id="time"
                   type="time"
@@ -300,20 +297,20 @@ function ScheduleCalendarContent() {
                 disabled={loading}
                 className="w-full"
               >
-                {loading ? "Agendando..." : "Confirmar Agendamento"}
+                {loading ? "Scheduling..." : "Confirm Schedule"}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
         <div className="mt-6 space-y-2 pt-6 border-t">
           <p className="text-sm text-muted-foreground">
-            Posts agendados: <span className="font-semibold">{scheduledPosts.length}</span>
+            Scheduled posts: <span className="font-semibold">{scheduledPosts.length}</span>
           </p>
           {nextPost && (
             <p className="text-sm text-muted-foreground">
-              Próxima publicação:{" "}
+              Next publication:{" "}
               <span className="font-semibold">
-                {format(new Date(nextPost.scheduled_date), "dd/MM/yyyy", { locale: ptBR })} às {nextPost.scheduled_time}
+                {format(new Date(nextPost.scheduled_date), "dd/MM/yyyy")} at {nextPost.scheduled_time}
               </span>
             </p>
           )}
@@ -322,11 +319,11 @@ function ScheduleCalendarContent() {
 
       <div className="space-y-6">
         <Card className="p-6">
-          <h2 className="text-xl font-display font-bold mb-4">Posts Salvos</h2>
+          <h2 className="text-xl font-display font-bold mb-4">Saved Posts</h2>
           <div className="space-y-2">
             {savedPosts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum post salvo
+                No saved posts
               </p>
             ) : (
               savedPosts.map((post) => (
@@ -337,11 +334,11 @@ function ScheduleCalendarContent() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-xl font-display font-bold mb-4">Posts Agendados</h2>
+          <h2 className="text-xl font-display font-bold mb-4">Scheduled Posts</h2>
           <div className="space-y-3">
             {scheduledPosts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum post agendado
+                No posts scheduled
               </p>
             ) : (
               scheduledPosts.map((post) => (
@@ -352,7 +349,7 @@ function ScheduleCalendarContent() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="text-sm font-medium">
-                        {format(new Date(post.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(new Date(post.scheduled_date), "dd/MM/yyyy", { locale: enUS })}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                         <Clock className="h-3 w-3" />

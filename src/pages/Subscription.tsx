@@ -41,14 +41,14 @@ export default function Subscription() {
       if (!subData) {
         const { data: newSub, error } = await supabase
           .from("subscriptions")
-          .insert([{ 
-            user_id: user.id, 
-            plan_type: 'free', 
-            status: 'active' 
+          .insert([{
+            user_id: user.id,
+            plan_type: 'free',
+            status: 'active'
           }])
           .select()
           .single();
-        
+
         if (!error) {
           subData = newSub;
         }
@@ -80,7 +80,7 @@ export default function Subscription() {
       // Atualizar subscription
       await supabase
         .from("subscriptions")
-        .update({ 
+        .update({
           plan_type: planType,
           current_period_start: new Date().toISOString(),
           current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
@@ -91,7 +91,7 @@ export default function Subscription() {
       if (profile) {
         await supabase
           .from("company_profiles")
-          .update({ 
+          .update({
             ai_credits_total: planConfig.total,
             ai_credits_remaining: planConfig.remaining,
             ai_credits_last_reset: new Date().toISOString()
@@ -99,43 +99,43 @@ export default function Subscription() {
           .eq("user_id", user.id);
       }
 
-      toast.success(`Plano alterado para ${planName}!`);
+      toast.success(`Plan changed to ${planName}!`);
       loadData();
     } catch (error) {
       console.error("Error changing plan:", error);
-      toast.error("Erro ao alterar plano");
+      toast.error("Error changing plan");
     }
   };
 
   const plans = [
     {
-      name: "Gratuito",
+      name: "Free",
       price: "R$ 0",
-      period: "/mês",
+      period: "/month",
       icon: Sparkles,
       gradient: "from-gray-500 to-gray-600",
       planType: "free",
       features: [
-        "100 créditos IA por mês",
-        "5 posts por dia",
-        "Analytics básicos",
-        "Sugestões de temas",
+        "100 AI credits per month",
+        "5 posts per day",
+        "Basic analytics",
+        "Theme suggestions",
       ],
       current: subscription?.plan_type === "free" || !subscription,
     },
     {
       name: "Pro",
       price: "R$ 49",
-      period: "/mês",
+      period: "/month",
       icon: Zap,
       gradient: "from-purple-500 to-pink-500",
       planType: "pro",
       features: [
-        "500 créditos IA por mês",
-        "Posts ilimitados",
-        "Analytics avançados",
-        "Sugestões de temas IA",
-        "Suporte prioritário",
+        "500 AI credits per month",
+        "Unlimited posts",
+        "Advanced analytics",
+        "AI Theme suggestions",
+        "Priority support",
       ],
       popular: true,
       current: subscription?.plan_type === "pro",
@@ -143,17 +143,17 @@ export default function Subscription() {
     {
       name: "Business",
       price: "R$ 99",
-      period: "/mês",
+      period: "/month",
       icon: Crown,
       gradient: "from-orange-500 to-yellow-500",
       planType: "business",
       features: [
-        "2000 créditos IA por mês",
-        "Posts ilimitados",
-        "Analytics completos",
-        "Múltiplas contas",
+        "2000 AI credits per month",
+        "Unlimited posts",
+        "Full analytics",
+        "Multiple accounts",
         "API access",
-        "Suporte dedicado",
+        "Dedicated support",
       ],
       current: subscription?.plan_type === "business",
     },
@@ -173,14 +173,14 @@ export default function Subscription() {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-4 md:py-8 space-y-6 md:space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">
-            Escolha seu Plano
+            Choose Your Plan
           </h1>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-            Desbloqueie todo o potencial do Studio Genius com nossos planos flexíveis
+            Unlock full potential of Studio Genius with our flexible plans
           </p>
         </div>
 
@@ -193,9 +193,9 @@ export default function Subscription() {
                   <CreditCard className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Créditos IA Disponíveis</h3>
+                  <h3 className="font-semibold">Available AI Credits</h3>
                   <p className="text-sm text-muted-foreground">
-                    {profile.ai_credits_remaining} de {profile.ai_credits_total} créditos
+                    {profile.ai_credits_remaining} of {profile.ai_credits_total} credits
                   </p>
                 </div>
               </div>
@@ -220,23 +220,22 @@ export default function Subscription() {
             return (
               <Card
                 key={plan.name}
-                className={`p-6 shadow-smooth hover:shadow-glow transition-smooth relative ${
-                  plan.popular ? "border-2 border-primary" : ""
-                }`}
+                className={`p-6 shadow-smooth hover:shadow-glow transition-smooth relative ${plan.popular ? "border-2 border-primary" : ""
+                  }`}
               >
                 {plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    Mais Popular
+                    Most Popular
                   </Badge>
                 )}
-                
+
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-bold">{plan.name}</h3>
                       {plan.current && (
                         <Badge variant="secondary" className="mt-1">
-                          Plano Atual
+                          Current Plan
                         </Badge>
                       )}
                     </div>
@@ -267,7 +266,7 @@ export default function Subscription() {
                     onClick={() => handleChangePlan(plan.name)}
                     disabled={plan.current}
                   >
-                    {plan.current ? "Plano Atual" : "Selecionar Plano"}
+                    {plan.current ? "Current Plan" : "Select Plan"}
                   </Button>
                 </div>
               </Card>
@@ -277,12 +276,12 @@ export default function Subscription() {
 
         <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-smooth bg-gradient-to-br from-purple-500/10 to-pink-500/10">
           <div className="text-center space-y-4">
-            <h2 className="text-xl md:text-2xl font-bold">Precisa de mais?</h2>
+            <h2 className="text-xl md:text-2xl font-bold">Need more?</h2>
             <p className="text-sm md:text-base text-muted-foreground">
-              Entre em contato para planos empresariais customizados
+              Contact us for customized business plans
             </p>
             <Button variant="outline">
-              Falar com Vendas
+              Contact Sales
             </Button>
           </div>
         </Card>

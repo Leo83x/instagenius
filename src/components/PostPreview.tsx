@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Heart, 
-  MessageCircle, 
-  Send, 
+import {
+  Heart,
+  MessageCircle,
+  Send,
   Bookmark,
   Download,
   Calendar,
@@ -23,6 +23,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { TextOverlayEditor, TextStyleConfig } from "@/components/TextOverlayEditor";
+import { composeTextOnImage, uploadComposedImage } from "@/utils/imageComposition";
 
 interface PostVariation {
   variant: string;
@@ -40,6 +42,10 @@ interface PostVariation {
   rationale: string;
   imageUrl?: string;
   imageError?: string;
+  headlineText?: string;
+  textOverlay?: {
+    position: 'top' | 'center' | 'bottom';
+  };
 }
 
 interface PostPreviewProps {
@@ -51,13 +57,15 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [companyName, setCompanyName] = useState("sua_empresa");
+  const [companyName, setCompanyName] = useState("your_company");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  
+
   // Estados para edição
   const [editedCaption, setEditedCaption] = useState("");
   const [editedHashtags, setEditedHashtags] = useState("");
   const [editedImageUrl, setEditedImageUrl] = useState("");
+  const [showTextEditor, setShowTextEditor] = useState(false);
+  const [applyingText, setApplyingText] = useState(false);
 
   useEffect(() => {
     const loadCompanyProfile = async () => {
@@ -71,7 +79,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
         .maybeSingle();
 
       if (data) {
-        setCompanyName(data.instagram_handle || data.company_name || "sua_empresa");
+        setCompanyName(data.instagram_handle || data.company_name || "your_company");
         setLogoUrl(data.logo_url);
       }
     };
@@ -83,7 +91,7 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       <Card className="p-6">
         <div className="text-center py-12">
           <p className="text-muted-foreground">
-            Nenhuma publicação gerada ainda. Preencha o formulário e gere suas variações!
+            No posts generated yet. Fill out the form and generate your variations!
           </p>
         </div>
       </Card>
@@ -118,7 +126,49 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
       imageUrl: editedImageUrl || currentPost.imageUrl
     };
     setIsEditing(false);
-    toast.success("Alterações salvas no preview!");
+    toast.success("Changes saved to preview!");
+  };
+
+  const handleApplyTextWithConfig = async (config: TextStyleConfig) => {
+    if (!currentPost.imageUrl) return;
+
+    setApplyingText(true);
+    try {
+      // 1. Compose image with text
+      const dataUrl = await composeTextOnImage(
+        currentPost.imageUrl,
+        config.text,
+        config.position,
+        {
+          color: config.color,
+          strokeColor: config.strokeColor,
+          fontSize: config.fontSize,
+          fontFamily: config.fontFamily
+        }
+      );
+
+      // 2. Upload to Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not found");
+
+      const publicUrl = await uploadComposedImage(dataUrl, user.id, supabase);
+
+      // 3. Update variation
+      variations[currentVariation] = {
+        ...currentPost,
+        imageUrl: publicUrl,
+        headlineText: config.text, // Update text to reflect edit
+        textOverlay: { position: config.position }
+      };
+
+      toast.success("Text applied to image successfully!");
+      setShowTextEditor(false);
+    } catch (error) {
+      console.error("Error applying text:", error);
+      toast.error("Error applying text to image");
+    } finally {
+      setApplyingText(false);
+    }
   };
 
   const displayPost = isEditing ? {
@@ -130,25 +180,25 @@ export function PostPreview({ variations = [] }: PostPreviewProps) {
 
   const handleExport = async () => {
     if (!displayPost) return;
-    
+
     setExporting(true);
     try {
       const content = `
-VARIAÇÃO: ${displayPost.variant}
+VARIANT: ${displayPost.variant}
 
-LEGENDA:
+CAPTION:
 ${displayPost.caption}
 
 HASHTAGS:
 ${displayPost.hashtags.join(" ")}
 
-DESCRIÇÃO DA IMAGEM:
+IMAGE DESCRIPTION:
 ${displayPost.imagePrompt.description}
 
-TEXTO ALTERNATIVO:
+ALT TEXT:
 ${displayPost.altText}
 
-ESTRATÉGIA:
+STRATEGY:
 ${displayPost.rationale}
       `.trim();
 
@@ -175,10 +225,10 @@ ${displayPost.rationale}
         URL.revokeObjectURL(imageUrl);
       }
 
-      toast.success("Post e imagem exportados com sucesso!");
+      toast.success("Post and image exported successfully!");
     } catch (error) {
       console.error("Error exporting:", error);
-      toast.error("Erro ao exportar arquivos");
+      toast.error("Error exporting files");
     } finally {
       setExporting(false);
     }
@@ -191,7 +241,7 @@ ${displayPost.rationale}
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Você precisa estar logado");
+        toast.error("You need to be logged in");
         return;
       }
 
@@ -212,10 +262,10 @@ ${displayPost.rationale}
 
       if (error) throw error;
 
-      toast.success("Post salvo com sucesso!");
+      toast.success("Post saved successfully!");
     } catch (error: any) {
       console.error("Error saving post:", error);
-      toast.error("Erro ao salvar post");
+      toast.error("Error saving post");
     } finally {
       setSaving(false);
     }
@@ -226,9 +276,9 @@ ${displayPost.rationale}
       <Card className="p-6 shadow-smooth">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-xl font-display font-bold">Variação {displayPost.variant}</h3>
+            <h3 className="text-xl font-display font-bold">Variation {displayPost.variant}</h3>
             <p className="text-sm text-muted-foreground">
-              {variations.length} variações geradas para teste A/B
+              {variations.length} variations generated for A/B testing
             </p>
           </div>
           <div className="flex gap-2">
@@ -262,23 +312,23 @@ ${displayPost.rationale}
                 )}
                 <span className="font-semibold text-sm">{companyName}</span>
               </div>
-              
+
               <div className="bg-muted aspect-square flex items-center justify-center relative">
                 {displayPost.imageUrl ? (
-                  <img 
-                    src={displayPost.imageUrl} 
+                  <img
+                    src={displayPost.imageUrl}
                     alt={displayPost.altText}
                     className="w-full h-full object-cover"
                   />
                 ) : displayPost.imageError ? (
                   <div className="text-center p-4">
                     <ImagePlus className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Erro ao gerar imagem</p>
+                    <p className="text-sm text-muted-foreground">Error generating image</p>
                   </div>
                 ) : (
                   <>
                     <Loader2 className="h-12 w-12 text-muted-foreground animate-spin" />
-                    <p className="absolute bottom-4 text-sm text-muted-foreground">Gerando imagem...</p>
+                    <p className="absolute bottom-4 text-sm text-muted-foreground">Generating image...</p>
                   </>
                 )}
               </div>
@@ -292,7 +342,7 @@ ${displayPost.rationale}
                   </div>
                   <Bookmark className="h-6 w-6 hover:text-primary cursor-pointer" />
                 </div>
-                
+
                 <div className="text-sm">
                   <span className="font-semibold">{companyName}</span>{" "}
                   <span className="whitespace-pre-wrap">{displayPost.caption}</span>
@@ -302,109 +352,130 @@ ${displayPost.rationale}
           </div>
 
           <div className="space-y-4">
+            {showTextEditor && displayPost.imageUrl && (
+              <TextOverlayEditor
+                imageUrl={displayPost.imageUrl}
+                text={displayPost.headlineText || ""}
+                initialPosition={displayPost.textOverlay?.position || "center"}
+                onApply={handleApplyTextWithConfig}
+                onCancel={() => setShowTextEditor(false)}
+              />
+            )}
+
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold">Edição em Tempo Real</h4>
+              <h4 className="font-semibold">Real-time Editing</h4>
               {!isEditing ? (
-                <Button variant="outline" size="sm" onClick={startEditing}>
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={startEditing}>
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+
+                  {displayPost.headlineText && !showTextEditor && (
+                    <Button variant="outline" size="sm" onClick={() => setShowTextEditor(true)} disabled={applyingText}>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      {applyingText ? "Applying..." : "Edit Text on Image"}
+                    </Button>
+                  )}
+                </>
               ) : (
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={cancelEditing}>
                     <X className="h-4 w-4 mr-2" />
-                    Cancelar
+                    Cancel
                   </Button>
                   <Button variant="default" size="sm" onClick={saveEdits}>
                     <Save className="h-4 w-4 mr-2" />
-                    Salvar
+                    Save
                   </Button>
                 </div>
               )}
             </div>
 
-            {isEditing ? (
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <div>
-                  <Label htmlFor="caption">Legenda</Label>
-                  <Textarea
-                    id="caption"
-                    value={editedCaption}
-                    onChange={(e) => setEditedCaption(e.target.value)}
-                    rows={6}
-                    className="mt-1"
-                  />
+            {
+              isEditing ? (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                  <div>
+                    <Label htmlFor="caption">Caption</Label>
+                    <Textarea
+                      id="caption"
+                      value={editedCaption}
+                      onChange={(e) => setEditedCaption(e.target.value)}
+                      rows={6}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="hashtags">Hashtags (separated by space)</Label>
+                    <Input
+                      id="hashtags"
+                      value={editedHashtags}
+                      onChange={(e) => setEditedHashtags(e.target.value)}
+                      placeholder="#example #hashtag"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Input
+                      id="imageUrl"
+                      value={editedImageUrl}
+                      onChange={(e) => setEditedImageUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="hashtags">Hashtags (separadas por espaço)</Label>
-                  <Input
-                    id="hashtags"
-                    value={editedHashtags}
-                    onChange={(e) => setEditedHashtags(e.target.value)}
-                    placeholder="#exemplo #hashtag"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="imageUrl">URL da Imagem</Label>
-                  <Input
-                    id="imageUrl"
-                    value={editedImageUrl}
-                    onChange={(e) => setEditedImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Badge variant="outline">Análise Estratégica</Badge>
-                  </h4>
-                  <p className="text-sm text-muted-foreground">{displayPost.rationale}</p>
-                </div>
+              ) : (
+                <>
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Badge variant="outline">Strategic Analysis</Badge>
+                    </h4>
+                    <p className="text-sm text-muted-foreground">{displayPost.rationale}</p>
+                  </div>
 
-                <Separator />
+                  <Separator />
 
-                <div>
-                  <h4 className="font-semibold mb-2">Prompt da Imagem</h4>
-                  <div className="space-y-2">
-                    <p className="text-sm">{displayPost.imagePrompt.description}</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge variant="secondary">Estilo: {displayPost.imagePrompt.style}</Badge>
-                      <Badge variant="secondary">Mood: {displayPost.imagePrompt.mood}</Badge>
+                  <div>
+                    <h4 className="font-semibold mb-2">Image Prompt</h4>
+                    <div className="space-y-2">
+                      <p className="text-sm">{displayPost.imagePrompt.description}</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="secondary">Style: {displayPost.imagePrompt.style}</Badge>
+                        <Badge variant="secondary">Mood: {displayPost.imagePrompt.mood}</Badge>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <Separator />
+                  <Separator />
 
-                <div>
-                  <h4 className="font-semibold mb-2">Texto Alternativo</h4>
-                  <p className="text-sm text-muted-foreground">{displayPost.altText}</p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-semibold mb-2">Hashtags ({displayPost.hashtags.length})</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {displayPost.hashtags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+                  <div>
+                    <h4 className="font-semibold mb-2">Alt Text</h4>
+                    <p className="text-sm text-muted-foreground">{displayPost.altText}</p>
                   </div>
-                </div>
-              </>
-            )}
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Hashtags ({displayPost.hashtags.length})</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {displayPost.hashtags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )
+            }
 
             <Separator />
 
             <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleExport}
                 disabled={exporting}
@@ -414,10 +485,10 @@ ${displayPost.rationale}
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Exportar
+                Export
               </Button>
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
                 onClick={handleSaveToDatabase}
                 disabled={saving}
@@ -427,7 +498,7 @@ ${displayPost.rationale}
                 ) : (
                   <Calendar className="h-4 w-4 mr-2" />
                 )}
-                Salvar Post
+                Save Post
               </Button>
             </div>
           </div>

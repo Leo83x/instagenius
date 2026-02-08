@@ -44,18 +44,18 @@ export function PredictiveAnalytics() {
 
       setPredictions(data.predictions || []);
       setSummary(data.summary || null);
-      toast.success("Análise preditiva concluída!");
+      toast.success("Predictive analysis complete!");
     } catch (error: any) {
       console.error("Error predicting:", error);
-      toast.error(error.message || "Erro na análise preditiva");
+      toast.error(error.message || "Error in predictive analysis");
     } finally {
       setLoading(false);
     }
   };
 
   const performanceColor = (perf: string) => {
-    if (perf.includes("acima")) return "text-green-600 dark:text-green-400";
-    if (perf.includes("abaixo")) return "text-red-600 dark:text-red-400";
+    if (perf.includes("above")) return "text-green-600 dark:text-green-400";
+    if (perf.includes("below")) return "text-red-600 dark:text-red-400";
     return "text-yellow-600 dark:text-yellow-400";
   };
 
@@ -64,18 +64,18 @@ export function PredictiveAnalytics() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-display font-bold">Dashboard Preditivo</h2>
+          <h2 className="text-xl font-display font-bold">Predictive Dashboard</h2>
         </div>
         <Button onClick={predictPerformance} disabled={loading} size="sm" variant="outline">
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Analisando...
+              Analyzing...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Prever Performance
+              Predict Performance
             </>
           )}
         </Button>
@@ -86,27 +86,27 @@ export function PredictiveAnalytics() {
           <div className="p-3 rounded-lg bg-primary/5 text-center">
             <Target className="h-5 w-5 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">{summary.average_predicted_engagement}%</p>
-            <p className="text-[10px] text-muted-foreground">Engaj. Médio Previsto</p>
+            <p className="text-[10px] text-muted-foreground">Avg. Predicted Engagement</p>
           </div>
           <div className="p-3 rounded-lg bg-primary/5 text-center">
             <Zap className="h-5 w-5 mx-auto mb-1 text-primary" />
             <p className="text-sm font-bold">{summary.best_performing_type}</p>
-            <p className="text-[10px] text-muted-foreground">Melhor Tipo</p>
+            <p className="text-[10px] text-muted-foreground">Best Type</p>
           </div>
           <div className="p-3 rounded-lg bg-primary/5 text-center">
             <p className="text-sm font-bold mt-1">{summary.best_performing_tone}</p>
-            <p className="text-[10px] text-muted-foreground">Melhor Tom</p>
+            <p className="text-[10px] text-muted-foreground">Best Tone</p>
           </div>
           <div className="p-3 rounded-lg bg-primary/5 text-center">
             <p className="text-sm font-bold mt-1">{summary.overall_trend}</p>
-            <p className="text-[10px] text-muted-foreground">Tendência</p>
+            <p className="text-[10px] text-muted-foreground">Trend</p>
           </div>
         </div>
       )}
 
       {summary?.insights && summary.insights.length > 0 && (
         <div className="p-3 bg-muted/50 rounded-lg mb-6">
-          <h4 className="text-sm font-semibold mb-2">💡 Insights da IA</h4>
+          <h4 className="text-sm font-semibold mb-2">💡 AI Insights</h4>
           <ul className="space-y-1">
             {summary.insights.map((insight, i) => (
               <li key={i} className="text-xs text-muted-foreground">{insight}</li>
@@ -117,7 +117,7 @@ export function PredictiveAnalytics() {
 
       {predictions.length > 0 ? (
         <div className="space-y-3">
-          <h3 className="font-semibold text-sm">Previsões por Post</h3>
+          <h3 className="font-semibold text-sm">Predictions per Post</h3>
           {predictions.map((pred, index) => (
             <div key={index} className="p-4 border rounded-lg space-y-3">
               <div className="flex items-start justify-between gap-3">
@@ -126,7 +126,7 @@ export function PredictiveAnalytics() {
                   <p className="text-xs text-muted-foreground line-clamp-1">{pred.post_caption}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  {pred.performance_vs_average.includes("acima") ? (
+                  {pred.performance_vs_average.includes("above") ? (
                     <ArrowUpRight className="h-4 w-4 text-green-500" />
                   ) : (
                     <ArrowDownRight className="h-4 w-4 text-red-500" />
@@ -139,15 +139,15 @@ export function PredictiveAnalytics() {
 
               <div className="flex gap-4 text-xs">
                 <div>
-                  <span className="text-muted-foreground">Engajamento:</span>{" "}
+                  <span className="text-muted-foreground">Engagement:</span>{" "}
                   <span className="font-bold">{pred.predicted_engagement_rate}%</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Alcance:</span>{" "}
+                  <span className="text-muted-foreground">Reach:</span>{" "}
                   <span className="font-bold">{pred.predicted_reach}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Confiança:</span>{" "}
+                  <span className="text-muted-foreground">Confidence:</span>{" "}
                   <span className="font-bold">{pred.confidence}%</span>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export function PredictiveAnalytics() {
         </div>
       ) : !loading && !summary ? (
         <p className="text-sm text-muted-foreground text-center py-6">
-          Clique em "Prever Performance" para que a IA analise seu histórico e preveja a performance dos próximos posts
+          Click "Predict Performance" to let AI analyze your history and predict future posts' performance
         </p>
       ) : null}
     </Card>

@@ -29,9 +29,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { 
-      objective, 
-      theme, 
+    const {
+      objective,
+      theme,
       tone = 'professional',
       style = 'photography',
       cta,
@@ -44,7 +44,10 @@ serve(async (req) => {
       maxHashtags = 10,
       userId,
       includeLogo = false,
-      logoUrl
+      logoUrl,
+      includeTextOverlay = false,
+      suggestedText,
+      textPosition = 'center'
     } = await req.json();
 
     console.log('Generating post with params:', { objective, theme, tone, style, postType });
@@ -59,9 +62,9 @@ serve(async (req) => {
       if (creditError) {
         console.error('Error checking credits:', creditError);
       } else if (creditResult && creditResult.length > 0 && !creditResult[0].success) {
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           error: 'Créditos de IA insuficientes. Faça upgrade do seu plano.',
-          creditsRemaining: creditResult[0].remaining 
+          creditsRemaining: creditResult[0].remaining
         }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -80,10 +83,10 @@ serve(async (req) => {
 
     const compliance = checkCompliance(theme);
     if (!compliance.safe) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Conteúdo não permitido',
         reason: compliance.reason,
-        requiresReview: true 
+        requiresReview: true
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -141,7 +144,15 @@ REGRAS OBRIGATÓRIAS:
 
 6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
 
+6. Alt text: máximo 125 caracteres (SEO + acessibilidade)
+
 7. Rationale: Explicação estratégica (1-2 linhas) sobre escolhas de tom e hashtags
+
+8. ${includeTextOverlay ? `TEXT OVERLAY (Texto na imagem):
+   - Gere um "headlineText" CURTO e IMPACTANTE (máximo 6 palavras)
+   - Deve complementar a imagem e chamar atenção imediatamente
+   - Se o usuário forneceu "Texto Sugerido", USE-O como base, mas melhore se necessário para caber na imagem
+   - Posicione em: ${textPosition}` : 'Não inclua overlay de texto na imagem'}
 
 RETORNE UM JSON VÁLIDO com este formato EXATO:
 {
@@ -174,7 +185,11 @@ RETORNE UM JSON VÁLIDO com este formato EXATO:
         "mood": "sensação desejada"
       },
       "altText": "texto alternativo conciso",
-      "rationale": "explicação estratégica"
+      "rationale": "explicação estratégica"${includeTextOverlay ? `,
+      "headlineText": "Texto curto para overlay",
+      "textOverlay": {
+        "position": "${textPosition}"
+      }` : ''}
     },
     {
       "variant": "B",
@@ -199,6 +214,7 @@ OBJETIVO: ${objective}
 TEMA: ${theme}
 ${cta ? `CTA SUGERIDA: ${cta}` : ''}
 ${customCaption ? `\nLEGENDA PERSONALIZADA DO USUÁRIO (use como base, ajuste e otimize mantendo a essência):\n"${customCaption}"` : ''}
+${includeTextOverlay ? `\nINCLUIR TEXTO NA IMAGEM (Overlay): Sim\nPosição: ${textPosition}\n${suggestedText ? `Texto Sugerido: "${suggestedText}"` : 'Gere um texto curto e impactante para a imagem.'}` : ''}
 
 Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem DETALHADOS.
 `;
@@ -223,14 +239,14 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error('AI API error:', aiResponse.status, errorText);
-      
+
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: 'Limite de taxa excedido. Tente novamente em alguns instantes.' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
+
       if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: 'Créditos insuficientes. Adicione créditos em Settings -> Workspace -> Usage.' }), {
           status: 402,
@@ -243,7 +259,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
 
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content;
-    
+
     if (!content) {
       throw new Error('AI response não contém conteúdo válido');
     }
@@ -259,9 +275,9 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
       result = JSON.parse(jsonStr);
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Falha ao processar resposta da IA',
-        details: content 
+        details: content
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -270,7 +286,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
 
     // Validar estrutura da resposta
     if (!result.variations || !Array.isArray(result.variations) || result.variations.length !== 2) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         error: 'Resposta da IA em formato inválido',
         expected: 'Array com 2 variações'
       }), {
@@ -284,13 +300,13 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
     // Generate images for each variation using Lovable AI
     console.log('Generating images for variations...');
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
-    
+
     for (const variation of result.variations) {
       try {
         const imagePrompt = `${variation.imagePrompt.description}. Style: ${variation.imagePrompt.style}. Colors: ${variation.imagePrompt.colors.join(', ')}. Mood: ${variation.imagePrompt.mood}. High quality Instagram post image, professional photography, ultra high resolution.`;
-        
+
         console.log(`Generating image for variant ${variation.variant} with prompt:`, imagePrompt);
-        
+
         const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -315,7 +331,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
 
         const imageData = await imageResponse.json();
         const base64Image = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-        
+
         if (!base64Image) {
           throw new Error('No image returned from AI');
         }
@@ -323,12 +339,12 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
         // Convert base64 to blob and upload to Supabase Storage
         const base64Data = base64Image.split(',')[1];
         const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        
+
         const fileName = `${crypto.randomUUID()}.png`;
         const filePath = `${userId || 'anonymous'}/${fileName}`;
-        
+
         console.log(`Uploading image to path: ${filePath}`);
-        
+
         const { data: uploadData, error: uploadError } = await supabaseClient
           .storage
           .from('generated-images')
@@ -343,7 +359,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
           // Try alternative path without userId
           const altPath = `posts/${fileName}`;
           console.log(`Retrying upload with alternative path: ${altPath}`);
-          
+
           const { data: retryData, error: retryError } = await supabaseClient
             .storage
             .from('generated-images')
@@ -351,17 +367,17 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
               contentType: 'image/png',
               upsert: false
             });
-          
+
           if (retryError) {
             console.error('Retry upload also failed:', retryError);
             throw new Error(`Upload failed: ${retryError.message}`);
           }
-          
+
           const { data: retryUrlData } = supabaseClient
             .storage
             .from('generated-images')
             .getPublicUrl(altPath);
-          
+
           variation.imageUrl = retryUrlData.publicUrl;
         } else {
           // Get public URL
@@ -373,7 +389,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
           variation.imageUrl = urlData.publicUrl;
         }
         console.log(`Image generated and uploaded for variant ${variation.variant}:`, variation.imageUrl);
-        
+
       } catch (imageError: any) {
         console.error(`Failed to generate image for variant ${variation.variant}:`, imageError);
         variation.imageUrl = null;
@@ -387,7 +403,7 @@ Gere 2 variações otimizadas (A/B) com legendas, hashtags E prompts de imagem D
 
   } catch (error: any) {
     console.error('Error in generate-post function:', error);
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       error: error.message || 'Erro ao gerar post',
       details: error.toString()
     }), {

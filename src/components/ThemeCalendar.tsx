@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar as CalendarIcon, Plus, X, Check, Sparkles } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -31,31 +31,31 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
 
   const handleAddTheme = () => {
     if (!date || !selectedTheme) return;
-    
+
     const newEvent: ThemeEvent = {
       id: crypto.randomUUID(),
       date: date,
       theme: selectedTheme
     };
-    
+
     setEvents([...events, newEvent]);
-    toast.success(`Tema "${selectedTheme.theme_name}" agendado para ${format(date, "dd/MM/yyyy", { locale: ptBR })}`);
+    toast.success(`Theme "${selectedTheme.theme_name}" scheduled for ${format(date, "MM/dd/yyyy", { locale: enUS })}`);
     setDialogOpen(false);
     setSelectedTheme(null);
   };
 
   const removeEvent = (id: string) => {
     setEvents(events.filter(e => e.id !== id));
-    toast.success("Tema removido do calendário");
+    toast.success("Theme removed from calendar");
   };
 
   const toggleCompleted = (id: string) => {
-    setEvents(events.map(e => 
+    setEvents(events.map(e =>
       e.id === id ? { ...e, completed: !e.completed } : e
     ));
     const event = events.find(e => e.id === id);
     if (event && !event.completed) {
-      toast.success("Tema marcado como concluído!");
+      toast.success("Theme marked as completed!");
     }
   };
 
@@ -67,29 +67,29 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
       hashtags: theme.suggested_hashtags
     }));
     navigate('/');
-    toast.info("Tema carregado no criador de posts!");
+    toast.info("Theme loaded into post creator!");
   };
 
   const getEventsForDate = (checkDate: Date) => {
-    return events.filter(event => 
+    return events.filter(event =>
       format(event.date, "yyyy-MM-dd") === format(checkDate, "yyyy-MM-dd")
     );
   };
 
   const categoryColors: Record<string, string> = {
-    "Educacional": "bg-blue-500/10 text-blue-600 border-blue-200",
-    "Promocional": "bg-green-500/10 text-green-600 border-green-200",
-    "Inspiracional": "bg-purple-500/10 text-purple-600 border-purple-200",
-    "Entretenimento": "bg-pink-500/10 text-pink-600 border-pink-200",
+    "Educational": "bg-blue-500/10 text-blue-600 border-blue-200",
+    "Promotional": "bg-green-500/10 text-green-600 border-green-200",
+    "Inspirational": "bg-purple-500/10 text-purple-600 border-purple-200",
+    "Entertainment": "bg-pink-500/10 text-pink-600 border-pink-200",
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Calendário de Temas</h2>
+        <h2 className="text-xl font-semibold">Theme Calendar</h2>
         <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
-          Agendar Tema
+          Schedule Theme
         </Button>
       </div>
 
@@ -99,7 +99,7 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
             mode="single"
             selected={date}
             onSelect={setDate}
-            locale={ptBR}
+            locale={enUS}
             className="rounded-md"
             modifiers={{
               hasEvent: events.map(e => e.date)
@@ -112,16 +112,15 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
 
         <Card className="p-4">
           <h3 className="font-semibold mb-4">
-            Temas Agendados {date && `- ${format(date, "dd/MM/yyyy", { locale: ptBR })}`}
+            Scheduled Themes {date && `- ${format(date, "MM/dd/yyyy", { locale: enUS })}`}
           </h3>
           <div className="space-y-2">
             {date && getEventsForDate(date).length > 0 ? (
               getEventsForDate(date).map((event) => (
-                <div 
-                  key={event.id} 
-                  className={`p-3 rounded-lg flex items-start gap-3 ${
-                    event.completed ? 'bg-green-500/10 border border-green-500/30' : 'bg-muted/50'
-                  }`}
+                <div
+                  key={event.id}
+                  className={`p-3 rounded-lg flex items-start gap-3 ${event.completed ? 'bg-green-500/10 border border-green-500/30' : 'bg-muted/50'
+                    }`}
                 >
                   <div className="pt-1">
                     <Checkbox
@@ -142,7 +141,7 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
                       {event.completed && (
                         <Badge className="bg-green-500/20 text-green-600 border-green-300">
                           <Check className="h-3 w-3 mr-1" />
-                          Concluído
+                          Completed
                         </Badge>
                       )}
                     </div>
@@ -154,7 +153,7 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
                         onClick={() => createPostFromTheme(event.theme)}
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        Criar Publicação
+                        Create Post
                       </Button>
                     )}
                   </div>
@@ -170,7 +169,7 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
               ))
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum tema agendado para esta data
+                No theme scheduled for this date
               </p>
             )}
           </div>
@@ -180,27 +179,26 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agendar Tema</DialogTitle>
+            <DialogTitle>Schedule Theme</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Data Selecionada</label>
+              <label className="text-sm font-medium">Selected Date</label>
               <p className="text-muted-foreground">
-                {date ? format(date, "dd/MM/yyyy", { locale: ptBR }) : "Selecione uma data"}
+                {date ? format(date, "MM/dd/yyyy", { locale: enUS }) : "Select a date"}
               </p>
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">Selecione um Tema</label>
+              <label className="text-sm font-medium mb-2 block">Select a Theme</label>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {savedThemes.map((theme) => (
                   <div
                     key={theme.id}
                     onClick={() => setSelectedTheme(theme)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedTheme?.id === theme.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedTheme?.id === theme.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                      }`}
                   >
                     <div className="flex flex-col gap-2">
                       <h4 className="font-medium text-sm leading-tight">{theme.theme_name}</h4>
@@ -215,10 +213,10 @@ export function ThemeCalendar({ savedThemes }: ThemeCalendarProps) {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button onClick={handleAddTheme} disabled={!selectedTheme}>
-                Agendar
+                Schedule
               </Button>
             </div>
           </div>

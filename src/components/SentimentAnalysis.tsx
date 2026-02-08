@@ -48,10 +48,10 @@ export function SentimentAnalysis() {
 
       setResults(data.results || []);
       setSummary(data.summary || null);
-      toast.success("Análise de sentimento concluída!");
+      toast.success("Sentiment analysis complete!");
     } catch (error: any) {
       console.error("Error analyzing sentiment:", error);
-      toast.error(error.message || "Erro ao analisar sentimentos");
+      toast.error(error.message || "Error analyzing sentiments");
     } finally {
       setLoading(false);
     }
@@ -59,18 +59,18 @@ export function SentimentAnalysis() {
 
   const pieData = summary
     ? [
-        { name: "Positivo", value: summary.average_positive },
-        { name: "Negativo", value: summary.average_negative },
-        { name: "Neutro", value: summary.average_neutral },
-      ]
+      { name: "Positive", value: summary.average_positive },
+      { name: "Negative", value: summary.average_negative },
+      { name: "Neutral", value: summary.average_neutral },
+    ]
     : [];
 
   const sentimentIcon = (type: string) => {
     switch (type) {
-      case "positivo":
-      case "Muito Positivo":
+      case "positive":
+      case "Very Positive":
         return <ThumbsUp className="h-4 w-4 text-green-500" />;
-      case "negativo":
+      case "negative":
         return <ThumbsDown className="h-4 w-4 text-red-500" />;
       default:
         return <Minus className="h-4 w-4 text-yellow-500" />;
@@ -82,18 +82,18 @@ export function SentimentAnalysis() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <MessageCircleHeart className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-display font-bold">Análise de Sentimento</h2>
+          <h2 className="text-xl font-display font-bold">Sentiment Analysis</h2>
         </div>
         <Button onClick={analyzeSentiment} disabled={loading} size="sm" variant="outline">
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Analisando...
+              Analyzing...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Analisar Comentários
+              Analyze Comments
             </>
           )}
         </Button>
@@ -125,14 +125,14 @@ export function SentimentAnalysis() {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               {sentimentIcon(summary.overall_sentiment)}
-              <span className="font-semibold">Sentimento Geral: {summary.overall_sentiment}</span>
+              <span className="font-semibold">Overall Sentiment: {summary.overall_sentiment}</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              {summary.total_analyzed} comentários analisados
+              {summary.total_analyzed} comments analyzed
             </p>
             {summary.recommendations.length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold mb-2">Recomendações:</h4>
+                <h4 className="text-sm font-semibold mb-2">Recommendations:</h4>
                 <ul className="space-y-1">
                   {summary.recommendations.map((rec, i) => (
                     <li key={i} className="text-xs text-muted-foreground flex items-start gap-2">
@@ -149,7 +149,7 @@ export function SentimentAnalysis() {
 
       {results.length > 0 ? (
         <div className="space-y-3">
-          <h3 className="font-semibold text-sm">Detalhes por Post</h3>
+          <h3 className="font-semibold text-sm">Details per Post</h3>
           {results.map((result, index) => (
             <div key={index} className="p-3 border rounded-lg space-y-2">
               <p className="text-sm font-medium line-clamp-1">{result.post_caption}</p>
@@ -163,7 +163,7 @@ export function SentimentAnalysis() {
                 <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600">
                   😐 {result.sentiment.neutral}%
                 </Badge>
-                <span className="text-muted-foreground">{result.total_comments} comentários</span>
+                <span className="text-muted-foreground">{result.total_comments} comments</span>
               </div>
               {result.highlights.common_topics.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -177,7 +177,7 @@ export function SentimentAnalysis() {
         </div>
       ) : !loading && !summary ? (
         <p className="text-sm text-muted-foreground text-center py-6">
-          Clique em "Analisar Comentários" para classificar o sentimento dos comentários dos seus posts
+          Click "Analyze Comments" to classify the sentiment of your posts' comments
         </p>
       ) : null}
     </Card>

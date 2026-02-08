@@ -37,7 +37,7 @@ export default function InstagramIntegration() {
 
     if (error) {
       console.error("OAuth error:", error, errorDescription);
-      toast.error(errorDescription || "Erro na autenticação com Facebook");
+      toast.error(errorDescription || "Authentication error with Facebook");
       navigate("/instagram", { replace: true });
       return;
     }
@@ -46,10 +46,10 @@ export default function InstagramIntegration() {
       setLoading(true);
       try {
         const redirectUri = `${window.location.origin}${window.location.pathname}`;
-        
+
         // Get user ID to pass manually (avoids JWT conflicts)
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         const { data, error } = await supabase.functions.invoke(
           "facebook-oauth-callback",
           {
@@ -62,18 +62,18 @@ export default function InstagramIntegration() {
         if (error) throw error;
 
         if (data.success) {
-          toast.success(`Instagram conectado! Conta: @${data.instagramUsername}`);
+          toast.success(`Instagram connected! Account: @${data.instagramUsername}`);
           setIsConnected(true);
           setInstagramUsername(data.instagramUsername);
           setInstagramUserId(data.instagramUserId);
           setTokenExpiresAt(data.expiresAt);
           navigate("/instagram", { replace: true });
         } else {
-          throw new Error(data.error || "Erro ao conectar");
+          throw new Error(data.error || "Connection error");
         }
       } catch (error: any) {
         console.error("OAuth callback error:", error);
-        toast.error(error.message || "Erro ao completar autenticação");
+        toast.error(error.message || "Error completing authentication");
         navigate("/instagram", { replace: true });
       } finally {
         setLoading(false);
@@ -96,7 +96,7 @@ export default function InstagramIntegration() {
         setIsConnected(true);
         setInstagramUserId(data.instagram_user_id);
         setTokenExpiresAt(data.token_expires_at);
-        
+
         // Fetch username from Instagram API
         try {
           const response = await fetch(
@@ -120,7 +120,7 @@ export default function InstagramIntegration() {
 
     const redirectUri = `${window.location.origin}/instagram`;
     const scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management";
-    
+
     const oauthUrl = `https://www.facebook.com/v20.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=${scope}&response_type=code&auth_type=rerequest`;
@@ -142,11 +142,11 @@ export default function InstagramIntegration() {
         toast.success(data.message);
         await checkConnection();
       } else {
-        throw new Error(data.error || "Erro ao renovar token");
+        throw new Error(data.error || "Error renewing token");
       }
     } catch (error: any) {
       console.error("Token refresh error:", error);
-      toast.error(error.message || "Erro ao renovar token");
+      toast.error(error.message || "Error renewing token");
     } finally {
       setRefreshing(false);
     }
@@ -154,7 +154,7 @@ export default function InstagramIntegration() {
 
   const testConnection = async () => {
     if (!accessToken || !instagramUserId) {
-      toast.error("Preencha todos os campos");
+      toast.error("Please fill in all fields");
       return;
     }
 
@@ -163,7 +163,7 @@ export default function InstagramIntegration() {
       // Validação rápida de formato/tipo de token
       if (accessToken.startsWith("IG") || accessToken.startsWith("IGQV")) {
         throw new Error(
-          "Este token parece do Instagram Basic Display (começa com IG/IGQV). Para publicar, gere um User Access Token do Facebook Graph (normalmente começa com EAA) com as permissões instagram_basic, pages_show_list e instagram_content_publish."
+          "This token seems to be from Instagram Basic Display (starts with IG/IGQV). To publish, generate a User Access Token from Facebook Graph (usually starts with EAA) with permissions instagram_basic, pages_show_list, and instagram_content_publish."
         );
       }
 
@@ -178,22 +178,22 @@ export default function InstagramIntegration() {
           data.error.message.toLowerCase().includes("cannot parse access token")
         ) {
           throw new Error(
-            "Access Token rejeitado. Gere um User Access Token válido (EAA...) do Facebook Graph para o usuário que administra a Página vinculada ao Instagram Business."
+            "Access Token rejected. Generate a valid User Access Token (EAA...) from Facebook Graph for the user who manages the Page linked to Instagram Business."
           );
         }
         if (data.error.code === 100 && data.error.error_subcode === 33) {
           throw new Error(
-            "Instagram User ID inválido ou sem permissões. Certifique-se de que:\n1. O ID informado é o Instagram Business Account ID (não o username numérico)\n2. O token tem permissão para acessar esta conta\n3. A conta Instagram está conectada a uma página do Facebook\n\nVeja as instruções acima sobre como obter o ID correto."
+            "Invalid Instagram User ID or missing permissions. Ensure that:\n1. The ID provided is the Instagram Business Account ID (not the numeric username)\n2. The token has permission to access this account\n3. The Instagram account is connected to a Facebook page\n\nSee the instructions above on how to get the correct ID."
           );
         }
-        throw new Error(data.error.message || "Token inválido");
+        throw new Error(data.error.message || "Invalid token");
       }
 
-      toast.success(`Conexão validada! Conta: @${data.username}`);
+      toast.success(`Connection validated! Account: @${data.username}`);
       return true;
     } catch (error: any) {
       console.error("Test connection error:", error);
-      toast.error(error.message || "Erro ao validar credenciais. Verifique se o Access Token e User ID estão corretos.");
+      toast.error(error.message || "Error validating credentials. Check if Access Token and User ID are correct.");
       return false;
     } finally {
       setTesting(false);
@@ -202,7 +202,7 @@ export default function InstagramIntegration() {
 
   const handleConnect = async () => {
     if (!accessToken || !instagramUserId) {
-      toast.error("Preencha todos os campos");
+      toast.error("Please fill in all fields");
       return;
     }
 
@@ -213,7 +213,7 @@ export default function InstagramIntegration() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user) throw new Error("User not authenticated");
 
       // Verificar se já existe um perfil
       const { data: existingProfile } = await supabase
@@ -239,7 +239,7 @@ export default function InstagramIntegration() {
           .from("company_profiles")
           .insert({
             user_id: user.id,
-            company_name: "Minha Empresa",
+            company_name: "My Company",
             instagram_access_token: accessToken,
             instagram_user_id: instagramUserId,
           });
@@ -247,11 +247,11 @@ export default function InstagramIntegration() {
         if (error) throw error;
       }
 
-      toast.success("Instagram conectado com sucesso!");
+      toast.success("Instagram connected successfully!");
       setIsConnected(true);
     } catch (error: any) {
       console.error("Error connecting Instagram:", error);
-      toast.error(error.message || "Erro ao conectar Instagram");
+      toast.error(error.message || "Error connecting Instagram");
     } finally {
       setLoading(false);
     }
@@ -279,10 +279,10 @@ export default function InstagramIntegration() {
       setInstagramUsername("");
       setTokenExpiresAt(null);
       setIsConnected(false);
-      toast.success("Instagram desconectado");
+      toast.success("Instagram disconnected");
     } catch (error) {
       console.error("Error disconnecting:", error);
-      toast.error("Erro ao desconectar Instagram");
+      toast.error("Error disconnecting Instagram");
     }
   };
 
@@ -308,9 +308,9 @@ export default function InstagramIntegration() {
               <Instagram className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-display font-bold">Integração Instagram</h1>
+              <h1 className="text-2xl font-display font-bold">Instagram Integration</h1>
               <p className="text-sm text-muted-foreground">
-                Conecte sua conta para publicar automaticamente
+                Connect your account to publish automatically
               </p>
             </div>
           </div>
@@ -321,11 +321,11 @@ export default function InstagramIntegration() {
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-green-500">
-                    Instagram conectado com sucesso
+                    Instagram connected successfully
                   </p>
                   {instagramUsername && (
                     <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      Conta: @{instagramUsername}
+                      Account: @{instagramUsername}
                     </p>
                   )}
                 </div>
@@ -335,7 +335,7 @@ export default function InstagramIntegration() {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Seu token expirou! Clique em "Renovar Token" ou reconecte sua conta.
+                    Your token has expired! Click "Renew Token" or reconnect your account.
                   </AlertDescription>
                 </Alert>
               )}
@@ -344,7 +344,7 @@ export default function InstagramIntegration() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Seu token expira em breve. Recomendamos renovar agora para evitar interrupções.
+                    Your token expires soon. We recommend renewing now to avoid interruptions.
                   </AlertDescription>
                 </Alert>
               )}
@@ -356,9 +356,9 @@ export default function InstagramIntegration() {
                 </div>
                 {tokenExpiresAt && (
                   <div>
-                    <Label>Token expira em</Label>
+                    <Label>Token expires on</Label>
                     <Input
-                      value={new Date(tokenExpiresAt).toLocaleDateString("pt-BR", {
+                      value={new Date(tokenExpiresAt).toLocaleDateString("en-US", {
                         day: "2-digit",
                         month: "long",
                         year: "numeric",
@@ -379,12 +379,12 @@ export default function InstagramIntegration() {
                   {refreshing ? (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Renovando...
+                      Renewing...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Renovar Token
+                      Renew Token
                     </>
                   )}
                 </Button>
@@ -393,14 +393,14 @@ export default function InstagramIntegration() {
                   onClick={handleDisconnect}
                   className="flex-1"
                 >
-                  Desconectar
+                  Disconnect
                 </Button>
               </div>
 
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  💡 <strong>Dica:</strong> Renove seu token a cada 60 dias para manter a conexão ativa. 
-                  O sistema irá alertá-lo quando estiver próximo do vencimento.
+                  💡 <strong>Tip:</strong> Renew your token every 60 days to keep the connection active.
+                  The system will alert you when it's close to expiration.
                 </p>
               </div>
             </div>
@@ -413,9 +413,9 @@ export default function InstagramIntegration() {
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-1" />
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-lg">Conexão Simplificada com Instagram</h3>
+                        <h3 className="font-semibold text-lg">Simplified Instagram Connection</h3>
                         <p className="text-sm text-muted-foreground">
-                          Conecte sua conta Instagram Business em apenas 3 cliques, sem complicações!
+                          Connect your Instagram Business account in just 3 clicks, hassle-free!
                         </p>
                       </div>
                     </div>
@@ -425,19 +425,19 @@ export default function InstagramIntegration() {
                         <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                           1
                         </div>
-                        <p className="text-sm">Clique em "Conectar com Facebook"</p>
+                        <p className="text-sm">Click "Connect with Facebook"</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                           2
                         </div>
-                        <p className="text-sm">Faça login com sua conta do Facebook</p>
+                        <p className="text-sm">Log in with your Facebook account</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold">
                           3
                         </div>
-                        <p className="text-sm">Autorize o acesso à sua página/Instagram Business</p>
+                        <p className="text-sm">Authorize access to your Page/Instagram Business</p>
                       </div>
                     </div>
                   </div>
@@ -445,9 +445,9 @@ export default function InstagramIntegration() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-sm">
-                      <strong>Importante:</strong> Sua conta do Instagram deve estar configurada como Instagram Business 
-                      e conectada a uma Página do Facebook. Se ainda não fez isso, configure em: 
-                      Instagram → Configurações → Conta → Mudar para conta profissional.
+                      <strong>Important:</strong> Your Instagram account must be set as Instagram Business
+                      and connected to a Facebook Page. If you haven't done this yet, configure it in:
+                      Instagram → Settings → Account → Switch to professional account.
                     </AlertDescription>
                   </Alert>
 
@@ -460,12 +460,12 @@ export default function InstagramIntegration() {
                     {loading ? (
                       <>
                         <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                        Conectando...
+                        Connecting...
                       </>
                     ) : (
                       <>
                         <Instagram className="h-5 w-5 mr-2" />
-                        Conectar com Facebook
+                        Connect with Facebook
                       </>
                     )}
                   </Button>
@@ -475,7 +475,7 @@ export default function InstagramIntegration() {
                       onClick={() => setUseOAuth(false)}
                       className="text-xs text-muted-foreground hover:text-foreground underline"
                     >
-                      Prefiro conectar manualmente com tokens
+                      I prefer to connect manually with tokens
                     </button>
                   </div>
                 </div>
@@ -485,78 +485,78 @@ export default function InstagramIntegration() {
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Atenção:</strong> O método manual é mais complexo e não recomendado. 
-                      Use apenas se tiver experiência técnica com APIs do Facebook.
+                      <strong>Warning:</strong> The manual method is more complex and not recommended.
+                      Use only if you have technical experience with Facebook APIs.
                     </AlertDescription>
                   </Alert>
 
                   <div className="space-y-4">
                     <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
-                  <p className="text-sm font-medium">Como obter suas credenciais do Instagram Graph API:</p>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <p className="font-semibold text-sm mb-2">📱 Passo 1: Preparar sua conta Instagram</p>
-                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside ml-2">
-                        <li>Converta sua conta para Instagram Business ou Creator</li>
-                        <li>Conecte-a a uma Página do Facebook no Instagram → Configurações → Conta → Mudar para conta profissional</li>
-                      </ul>
+                      <p className="text-sm font-medium">How to get your Instagram Graph API credentials:</p>
+
+                      <div className="space-y-4">
+                        <div>
+                          <p className="font-semibold text-sm mb-2">📱 Step 1: Prepare your Instagram account</p>
+                          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside ml-2">
+                            <li>Convert your account to Instagram Business or Creator</li>
+                            <li>Connect it to a Facebook Page in Instagram → Settings → Account → Switch to professional account</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-sm mb-2">🔑 Step 2: Create App on Meta for Developers</p>
+                          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
+                            <li>Access <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developers.facebook.com/apps</a></li>
+                            <li>Click "Create App" → choose type "Business"</li>
+                            <li>In "Add products", add "Instagram Graph API"</li>
+                            <li>Go to "Tools" → "Access Token Tool"</li>
+                            <li>Select your Page connected to Instagram</li>
+                            <li>Check permissions: <code className="text-xs bg-muted px-1 rounded">instagram_basic</code>, <code className="text-xs bg-muted px-1 rounded">instagram_content_publish</code>, <code className="text-xs bg-muted px-1 rounded">pages_show_list</code></li>
+                            <li>Click "Generate Token" - copy the generated token (starts with EAA)</li>
+                          </ol>
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-sm mb-2">🆔 Step 3: Get Instagram Business Account ID</p>
+                          <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
+                            <li>Access <a href="https://business.facebook.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">business.facebook.com/settings</a></li>
+                            <li>In the left sidebar, click "Accounts" → "Instagram Accounts"</li>
+                            <li>Click on your desired Instagram account (e.g. @yourcompanyProfile)</li>
+                            <li>Check the <strong>browser URL</strong>. It will be something like:<br /><code className="text-xs bg-muted px-1 py-0.5 rounded block mt-1">business.facebook.com/latest/settings/instagram_account?business_id=...&selected_asset_id=<strong>17841477061462489</strong></code></li>
+                            <li>Copy only the <strong>long numbers</strong> after <code className="text-xs">selected_asset_id=</code> (usually 17 digits)</li>
+                            <li>In the example above, the correct ID would be: <code className="text-xs bg-primary/20 px-1 py-0.5 rounded font-bold">17841477061462489</code></li>
+                          </ol>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                          <strong>⚠️ Important:</strong> The Instagram Business Account ID is different from your @username. It is a long number you find in Facebook Business Manager. Ensure your Instagram account is connected to a Facebook Page before starting.
+                        </p>
+                      </div>
                     </div>
 
                     <div>
-                      <p className="font-semibold text-sm mb-2">🔑 Passo 2: Criar App no Meta for Developers</p>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
-                        <li>Acesse <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developers.facebook.com/apps</a></li>
-                        <li>Clique em "Criar App" → escolha tipo "Business"</li>
-                        <li>Em "Adicionar produtos", adicione "Instagram Graph API"</li>
-                        <li>Vá em "Ferramentas" (Tools) → "Ferramenta de Token de Acesso" (Access Token Tool)</li>
-                        <li>Selecione sua Página conectada ao Instagram</li>
-                        <li>Marque as permissões: <code className="text-xs bg-muted px-1 rounded">instagram_basic</code>, <code className="text-xs bg-muted px-1 rounded">instagram_content_publish</code>, <code className="text-xs bg-muted px-1 rounded">pages_show_list</code></li>
-                        <li>Clique em "Gerar Token" - copie o token gerado (começa com EAA)</li>
-                      </ol>
+                      <Label htmlFor="accessToken">Access Token *</Label>
+                      <Input
+                        id="accessToken"
+                        type="password"
+                        value={accessToken}
+                        onChange={(e) => setAccessToken(e.target.value)}
+                        placeholder="Paste your access token here"
+                      />
                     </div>
 
                     <div>
-                      <p className="font-semibold text-sm mb-2">🆔 Passo 3: Obter Instagram Business Account ID</p>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside ml-2">
-                        <li>Acesse <a href="https://business.facebook.com/settings" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">business.facebook.com/settings</a></li>
-                        <li>No menu lateral esquerdo, clique em "Contas" → "Contas do Instagram"</li>
-                        <li>Clique na sua conta Instagram desejada (ex: @convertamaisoficial)</li>
-                        <li>Veja a <strong>URL do navegador</strong>. Ela será algo como:<br/><code className="text-xs bg-muted px-1 py-0.5 rounded block mt-1">business.facebook.com/latest/settings/instagram_account?business_id=...&selected_asset_id=<strong>17841477061462489</strong></code></li>
-                        <li>Copie apenas os <strong>números longos</strong> após <code className="text-xs">selected_asset_id=</code> (geralmente 17 dígitos)</li>
-                        <li>No exemplo acima, o ID correto seria: <code className="text-xs bg-primary/20 px-1 py-0.5 rounded font-bold">17841477061462489</code></li>
-                      </ol>
+                      <Label htmlFor="userId">Instagram User ID *</Label>
+                      <Input
+                        id="userId"
+                        value={instagramUserId}
+                        onChange={(e) => setInstagramUserId(e.target.value)}
+                        placeholder="Paste your user ID here"
+                      />
                     </div>
                   </div>
-
-                  <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded">
-                    <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                      <strong>⚠️ Importante:</strong> O Instagram Business Account ID é diferente do seu @username. É um número longo que você encontra no Facebook Business Manager. Certifique-se de que sua conta Instagram está conectada a uma Página do Facebook antes de começar.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="accessToken">Access Token *</Label>
-                  <Input
-                    id="accessToken"
-                    type="password"
-                    value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
-                    placeholder="Cole seu access token aqui"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="userId">Instagram User ID *</Label>
-                  <Input
-                    id="userId"
-                    value={instagramUserId}
-                    onChange={(e) => setInstagramUserId(e.target.value)}
-                    placeholder="Cole seu user ID aqui"
-                  />
-                </div>
-              </div>
 
                   <div className="flex gap-3">
                     <Button
@@ -565,14 +565,14 @@ export default function InstagramIntegration() {
                       variant="outline"
                       className="flex-1"
                     >
-                      {testing ? "Testando..." : "Testar Conexão"}
+                      {testing ? "Testing..." : "Test Connection"}
                     </Button>
                     <Button
                       onClick={handleConnect}
                       disabled={loading || testing}
                       className="flex-1"
                     >
-                      {loading ? "Conectando..." : "Conectar Instagram"}
+                      {loading ? "Connecting..." : "Connect Instagram"}
                     </Button>
                   </div>
 
@@ -581,7 +581,7 @@ export default function InstagramIntegration() {
                       onClick={() => setUseOAuth(true)}
                       className="text-xs text-muted-foreground hover:text-foreground underline"
                     >
-                      Voltar para conexão simplificada (recomendado)
+                      Back to simplified connection (recommended)
                     </button>
                   </div>
                 </div>

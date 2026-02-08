@@ -13,7 +13,7 @@ interface GridPost {
 
 export function InstagramGridPreview() {
   const [posts, setPosts] = useState<GridPost[]>([]);
-  const [companyName, setCompanyName] = useState("sua_empresa");
+  const [companyName, setCompanyName] = useState("your_company");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [postCount, setPostCount] = useState(0);
 
@@ -40,7 +40,7 @@ export function InstagramGridPreview() {
     ]);
 
     if (profile) {
-      setCompanyName(profile.instagram_handle || profile.company_name || "sua_empresa");
+      setCompanyName(profile.instagram_handle || profile.company_name || "your_company");
       setLogoUrl(profile.logo_url);
     }
     setPosts(postsData || []);
@@ -51,7 +51,7 @@ export function InstagramGridPreview() {
     <Card className="p-6 shadow-smooth">
       <div className="flex items-center gap-2 mb-6">
         <Grid3X3 className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-display font-bold">Visualização do Grid</h2>
+        <h2 className="text-xl font-display font-bold">Grid Preview</h2>
       </div>
 
       {/* Instagram Profile Header */}
@@ -75,11 +75,11 @@ export function InstagramGridPreview() {
               </div>
               <div>
                 <span className="font-bold text-sm">-</span>
-                <p className="text-xs text-muted-foreground">seguidores</p>
+                <p className="text-xs text-muted-foreground">followers</p>
               </div>
               <div>
                 <span className="font-bold text-sm">-</span>
-                <p className="text-xs text-muted-foreground">seguindo</p>
+                <p className="text-xs text-muted-foreground">following</p>
               </div>
             </div>
           </div>
@@ -94,7 +94,7 @@ export function InstagramGridPreview() {
           {posts.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Nenhum post salvo ainda</p>
+              <p className="text-sm">No post saved yet</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-0.5">

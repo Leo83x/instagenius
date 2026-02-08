@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 interface SeasonalDate {
   date: string;
@@ -31,10 +31,10 @@ export function SeasonalCalendar() {
       if (data.error) throw new Error(data.error);
 
       setSeasonalDates(data.dates || []);
-      toast.success("Calendário sazonal atualizado!");
+      toast.success("Seasonal calendar updated!");
     } catch (error: any) {
       console.error("Error loading seasonal:", error);
-      toast.error(error.message || "Erro ao carregar calendário sazonal");
+      toast.error(error.message || "Error loading seasonal calendar");
     } finally {
       setLoading(false);
     }
@@ -60,18 +60,18 @@ export function SeasonalCalendar() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <CalendarHeart className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-display font-bold">Calendário Sazonal Inteligente</h2>
+          <h2 className="text-xl font-display font-bold">Smart Seasonal Calendar</h2>
         </div>
         <Button onClick={loadSeasonalDates} disabled={loading} size="sm" variant="outline">
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Carregando...
+              Loading...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Gerar Sugestões Sazonais
+              Generate Seasonal Suggestions
             </>
           )}
         </Button>
@@ -88,7 +88,7 @@ export function SeasonalCalendar() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <Badge variant="outline" className="text-xs">
-                    {item.days_until === 0 ? "Hoje!" : `${item.days_until} dias`}
+                    {item.days_until === 0 ? "Today!" : `${item.days_until} days`}
                   </Badge>
                   <p className="text-xs text-muted-foreground mt-1">
                     {item.date}
@@ -96,7 +96,7 @@ export function SeasonalCalendar() {
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-xs font-medium">Ideias de Post:</p>
+                <p className="text-xs font-medium">Post Ideas:</p>
                 <div className="flex flex-wrap gap-2">
                   {item.post_ideas.map((idea, i) => (
                     <Button
@@ -117,7 +117,7 @@ export function SeasonalCalendar() {
         </div>
       ) : !loading ? (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Clique em "Gerar Sugestões Sazonais" para ver as próximas datas comemorativas com ideias de posts prontas
+          Click "Generate Seasonal Suggestions" to see upcoming holidays with ready-to-use post ideas
         </p>
       ) : null}
     </Card>

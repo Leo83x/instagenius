@@ -27,12 +27,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-4 md:py-8 space-y-4 md:space-y-8">
         <div className="space-y-1 md:space-y-2">
           <h1 className="text-2xl md:text-3xl font-display font-bold">Dashboard</h1>
           <p className="text-sm md:text-base text-muted-foreground">
-            Transforme suas ideias em posts profissionais para Instagram
+            Transform your ideas into professional Instagram posts
           </p>
         </div>
 
@@ -40,10 +40,10 @@ const Index = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
           <TabsList className="grid w-full grid-cols-4 h-auto">
-            <TabsTrigger value="create" className="text-xs md:text-sm py-2">Criar Post</TabsTrigger>
-            <TabsTrigger value="preview" className="text-xs md:text-sm py-2">Visualizar</TabsTrigger>
-            <TabsTrigger value="schedule" className="text-xs md:text-sm py-2">Agenda</TabsTrigger>
-            <TabsTrigger value="saved" className="text-xs md:text-sm py-2">Salvos</TabsTrigger>
+            <TabsTrigger value="create" className="text-xs md:text-sm py-2">Create Post</TabsTrigger>
+            <TabsTrigger value="preview" className="text-xs md:text-sm py-2">Preview</TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs md:text-sm py-2">Schedule</TabsTrigger>
+            <TabsTrigger value="saved" className="text-xs md:text-sm py-2">Saved</TabsTrigger>
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
@@ -55,7 +55,7 @@ const Index = () => {
               <PostPreview variations={generatedVariations} />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
-                Gere um post primeiro para visualizar
+                Generate a post first to preview
               </div>
             )}
           </TabsContent>

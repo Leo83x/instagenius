@@ -36,7 +36,7 @@ export default function SavedPosts() {
       setPosts(data || []);
     } catch (error: any) {
       console.error("Error loading posts:", error);
-      toast.error("Erro ao carregar posts salvos");
+      toast.error("Error loading saved posts");
     } finally {
       setLoading(false);
     }
@@ -50,11 +50,11 @@ export default function SavedPosts() {
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Post deletado com sucesso");
+      toast.success("Post deleted successfully");
       loadPosts();
     } catch (error: any) {
       console.error("Error deleting post:", error);
-      toast.error("Erro ao deletar post");
+      toast.error("Error deleting post");
     }
   };
 
@@ -71,7 +71,7 @@ export default function SavedPosts() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       // Download image if available
       if (post.image_url) {
         const response = await fetch(post.image_url);
@@ -85,11 +85,11 @@ export default function SavedPosts() {
         document.body.removeChild(imageLink);
         URL.revokeObjectURL(imageUrl);
       }
-      
-      toast.success("Download concluído!");
+
+      toast.success("Download complete!");
     } catch (error) {
       console.error("Error downloading:", error);
-      toast.error("Erro ao baixar arquivos");
+      toast.error("Error downloading files");
     }
   };
 
@@ -106,16 +106,16 @@ export default function SavedPosts() {
         .maybeSingle();
 
       if (!profile?.instagram_access_token) {
-        toast.error("Conecte sua conta do Instagram primeiro");
+        toast.error("Connect your Instagram account first");
         navigate("/instagram");
         return;
       }
 
       // Navigate to schedule page
-      navigate("/", { state: { schedulePostId: postId } });
+      navigate("/schedule", { state: { schedulePostId: postId } });
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Erro ao agendar post");
+      toast.error("Error scheduling post");
     }
   };
 
@@ -133,7 +133,7 @@ export default function SavedPosts() {
         .maybeSingle();
 
       if (!profile?.instagram_access_token) {
-        toast.error("Conecte sua conta do Instagram primeiro");
+        toast.error("Connect your Instagram account first");
         navigate("/instagram");
         return;
       }
@@ -153,7 +153,7 @@ export default function SavedPosts() {
 
       if (insertError) throw insertError;
 
-      toastId = toast.loading("Publicando no Instagram...");
+      toastId = toast.loading("Publishing to Instagram...");
 
       const { data, error } = await supabase.functions.invoke("publish-instagram", {
         body: { scheduledPostId: scheduledPost.id },
@@ -162,17 +162,17 @@ export default function SavedPosts() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success("Post publicado com sucesso no Instagram!", { id: toastId });
+        toast.success("Post published successfully to Instagram!", { id: toastId });
         loadPosts();
       } else {
-        throw new Error(data.error || "Erro ao publicar");
+        throw new Error(data.error || "Error publishing");
       }
     } catch (error: any) {
       console.error("Error publishing:", error);
       if (toastId) {
-        toast.error(error.message || "Erro ao publicar no Instagram", { id: toastId });
+        toast.error(error.message || "Error publishing to Instagram", { id: toastId });
       } else {
-        toast.error(error.message || "Erro ao publicar no Instagram");
+        toast.error(error.message || "Error publishing to Instagram");
       }
     }
   };
@@ -180,7 +180,7 @@ export default function SavedPosts() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -190,9 +190,9 @@ export default function SavedPosts() {
       <Header />
       <main className="container py-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold">Posts Salvos</h1>
+          <h1 className="text-3xl font-display font-bold">Saved Posts</h1>
           <p className="text-muted-foreground">
-            Gerencie todos os seus posts gerados
+            Manage all your generated posts
           </p>
         </div>
 
@@ -200,18 +200,18 @@ export default function SavedPosts() {
           <TabsList>
             <TabsTrigger value="list" className="flex items-center gap-1">
               <List className="h-3 w-3" />
-              Lista
+              List
             </TabsTrigger>
             <TabsTrigger value="grid" className="flex items-center gap-1">
               <Grid3X3 className="h-3 w-3" />
-              Preview do Grid
+              Grid Preview
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="list">
             {posts.length === 0 ? (
               <Card className="p-12 text-center">
-                <p className="text-muted-foreground">Nenhum post salvo ainda</p>
+                <p className="text-muted-foreground">No saved posts yet</p>
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -250,7 +250,7 @@ export default function SavedPosts() {
                         className="flex-1"
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        Baixar
+                        Download
                       </Button>
                       <Button
                         variant="outline"
@@ -259,7 +259,7 @@ export default function SavedPosts() {
                         className="flex-1"
                       >
                         <Calendar className="h-4 w-4 mr-1" />
-                        Agendar
+                        Schedule
                       </Button>
                       <Button
                         variant="default"
@@ -267,7 +267,7 @@ export default function SavedPosts() {
                         onClick={() => publishNow(post)}
                         className="flex-1"
                       >
-                        Publicar
+                        Publish
                       </Button>
                       <Button
                         variant="ghost"

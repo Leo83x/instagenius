@@ -36,7 +36,7 @@ export default function Analytics() {
       setPosts(postsData || []);
     } catch (error) {
       console.error("Error loading analytics:", error);
-      toast.error("Erro ao carregar analytics");
+      toast.error("Error loading analytics");
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function Analytics() {
   };
 
   const refreshAnalytics = async (postId?: string) => {
-    const toastId = toast.loading("Atualizando métricas...");
+    const toastId = toast.loading("Updating metrics...");
     try {
       const { data, error } = await supabase.functions.invoke("refresh-analytics", {
         body: { postId },
@@ -88,14 +88,14 @@ export default function Analytics() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success(data.message || "Métricas atualizadas!", { id: toastId });
+        toast.success(data.message || "Metrics updated!", { id: toastId });
         await loadPostsWithAnalytics();
       } else {
-        throw new Error(data.error || "Erro ao atualizar");
+        throw new Error(data.error || "Update failed");
       }
     } catch (error: any) {
       console.error("Error refreshing analytics:", error);
-      toast.error(error.message || "Erro ao atualizar métricas", { id: toastId });
+      toast.error(error.message || "Error updating metrics", { id: toastId });
     }
   };
 
@@ -113,18 +113,18 @@ export default function Analytics() {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-8 space-y-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="space-y-2">
             <h1 className="text-3xl font-display font-bold">Analytics</h1>
             <p className="text-muted-foreground">
-              Análise detalhada, insights preditivos e sentimento
+              Detailed analysis, predictive insights, and sentiment
             </p>
           </div>
           <Button onClick={() => refreshAnalytics()} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar Todas as Métricas
+            Update All Metrics
           </Button>
         </div>
 
@@ -134,15 +134,15 @@ export default function Analytics() {
             <TabsTrigger value="hashtags">Hashtags</TabsTrigger>
             <TabsTrigger value="timing" className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              Horários
+              Best Times
             </TabsTrigger>
             <TabsTrigger value="sentiment" className="flex items-center gap-1">
               <MessageCircleHeart className="h-3 w-3" />
-              Sentimento
+              Sentiment
             </TabsTrigger>
             <TabsTrigger value="predictive" className="flex items-center gap-1">
               <Brain className="h-3 w-3" />
-              Preditivo
+              Predictive
             </TabsTrigger>
           </TabsList>
 
@@ -150,9 +150,9 @@ export default function Analytics() {
             {posts.length === 0 ? (
               <Card className="p-8 md:p-12 text-center">
                 <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg md:text-xl font-semibold mb-2">Nenhum post ainda</h3>
+                <h3 className="text-lg md:text-xl font-semibold mb-2">No posts yet</h3>
                 <p className="text-sm md:text-base text-muted-foreground">
-                  Publique seus primeiros posts para ver as análises aqui
+                  Publish your first posts to see analytics here
                 </p>
               </Card>
             ) : (
@@ -180,37 +180,37 @@ export default function Analytics() {
                               <div className="flex items-center gap-2 text-sm">
                                 <Heart className="h-4 w-4 text-pink-500" />
                                 <span className="font-medium">{analytics.likes_count}</span>
-                                <span className="text-muted-foreground hidden md:inline">Curtidas</span>
+                                <span className="text-muted-foreground hidden md:inline">Likes</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <MessageCircle className="h-4 w-4 text-blue-500" />
                                 <span className="font-medium">{analytics.comments_count}</span>
-                                <span className="text-muted-foreground hidden md:inline">Comentários</span>
+                                <span className="text-muted-foreground hidden md:inline">Comments</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <Share2 className="h-4 w-4 text-green-500" />
                                 <span className="font-medium">{analytics.shares_count}</span>
-                                <span className="text-muted-foreground hidden md:inline">Compartilh.</span>
+                                <span className="text-muted-foreground hidden md:inline">Shares</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <Eye className="h-4 w-4 text-purple-500" />
                                 <span className="font-medium">{analytics.reach}</span>
-                                <span className="text-muted-foreground hidden md:inline">Alcance</span>
+                                <span className="text-muted-foreground hidden md:inline">Reach</span>
                               </div>
                               <div className="flex items-center gap-2 text-sm">
                                 <TrendingUp className="h-4 w-4 text-orange-500" />
                                 <span className="font-medium">{analytics.engagement_rate}%</span>
-                                <span className="text-muted-foreground hidden md:inline">Engaj.</span>
+                                <span className="text-muted-foreground hidden md:inline">Engage.</span>
                               </div>
                             </div>
                           ) : (
                             <div className="text-sm text-muted-foreground">
-                              Conecte sua conta Instagram para ver métricas
+                              Connect your Instagram account to see metrics
                             </div>
                           )}
                           <Button variant="outline" size="sm" onClick={() => refreshAnalytics(post.id)} className="w-full md:w-auto">
                             <RefreshCw className="h-4 w-4 mr-2" />
-                            Atualizar Métricas
+                            Update Metrics
                           </Button>
                         </div>
                       </div>
@@ -225,7 +225,7 @@ export default function Analytics() {
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Hash className="h-5 w-5 text-primary" />
-                <h2 className="text-xl font-semibold">Performance de Hashtags</h2>
+                <h2 className="text-xl font-semibold">Hashtag Performance</h2>
               </div>
               {hashtagData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
@@ -235,13 +235,13 @@ export default function Analytics() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="avgEngagement" fill="hsl(var(--primary))" name="Engajamento Médio" />
-                    <Bar dataKey="count" fill="hsl(var(--accent))" name="Uso" />
+                    <Bar dataKey="avgEngagement" fill="hsl(var(--primary))" name="Avg Engagement" />
+                    <Bar dataKey="count" fill="hsl(var(--accent))" name="Count" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
-                  Publique posts com hashtags para ver a análise
+                  Publish posts with hashtags to see analysis
                 </div>
               )}
             </Card>

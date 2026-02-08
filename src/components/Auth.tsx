@@ -31,9 +31,9 @@ export function Auth() {
 
       if (error) throw error;
 
-      toast.success("Conta criada com sucesso! Você já está conectado.");
+      toast.success("Account created successfully! You are now connected.");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta");
+      toast.error(error.message || "Error creating account");
     } finally {
       setIsLoading(false);
     }
@@ -51,9 +51,9 @@ export function Auth() {
 
       if (error) throw error;
 
-      toast.success("Login realizado com sucesso!");
+      toast.success("Login successful!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
+      toast.error(error.message || "Error logging in");
     } finally {
       setIsLoading(false);
     }
@@ -71,14 +71,14 @@ export function Auth() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">InstaGenius</h1>
           <p className="text-muted-foreground">
-            Transforme ideias em posts profissionais com IA
+            Transform ideas into professional posts with AI
           </p>
         </div>
 
         <Tabs defaultValue="signin" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Entrar</TabsTrigger>
-            <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin" className="space-y-4">
@@ -88,14 +88,14 @@ export function Auth() {
                 <Input
                   id="signin-email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="signin-password">Senha</Label>
+                <Label htmlFor="signin-password">Password</Label>
                 <Input
                   id="signin-password"
                   type="password"
@@ -105,21 +105,21 @@ export function Auth() {
                   required
                 />
               </div>
-              <Button 
-                type="submit" 
-                variant="gradient" 
+              <Button
+                type="submit"
+                variant="gradient"
                 className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                    Entrando...
+                    Signing in...
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Entrar
+                    Sign In
                   </>
                 )}
               </Button>
@@ -129,11 +129,11 @@ export function Auth() {
           <TabsContent value="signup" className="space-y-4">
             <form onSubmit={handleSignUp} className="space-y-4">
               <div>
-                <Label htmlFor="signup-name">Nome</Label>
+                <Label htmlFor="signup-name">Name</Label>
                 <Input
                   id="signup-name"
                   type="text"
-                  placeholder="Seu nome"
+                  placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -144,14 +144,14 @@ export function Auth() {
                 <Input
                   id="signup-email"
                   type="email"
-                  placeholder="seu@email.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="signup-password">Senha</Label>
+                <Label htmlFor="signup-password">Password</Label>
                 <Input
                   id="signup-password"
                   type="password"
@@ -162,24 +162,24 @@ export function Auth() {
                   minLength={6}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Mínimo de 6 caracteres
+                  At least 6 characters
                 </p>
               </div>
-              <Button 
-                type="submit" 
-                variant="gradient" 
+              <Button
+                type="submit"
+                variant="gradient"
                 className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
-                    Criando conta...
+                    Creating account...
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Criar Conta
+                    Sign Up
                   </>
                 )}
               </Button>
@@ -188,7 +188,7 @@ export function Auth() {
         </Tabs>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Ao criar uma conta, você concorda com nossos termos e políticas
+          By creating an account, you agree to our terms and policies
         </p>
       </Card>
     </div>

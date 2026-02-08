@@ -50,30 +50,30 @@ export function StatsOverview() {
 
   const statsData = [
     {
-      label: "Posts Gerados",
+      label: "Generated Posts",
       value: stats.postsGerados.toString(),
       change: "Total",
       icon: FileText,
       gradient: "from-purple-500 to-pink-500"
     },
     {
-      label: "Posts Agendados",
+      label: "Scheduled Posts",
       value: stats.postsAgendados.toString(),
-      change: "Pendentes",
+      change: "Pending",
       icon: Calendar,
       gradient: "from-pink-500 to-orange-500"
     },
     {
-      label: "Tempo Economizado",
+      label: "Time Saved",
       value: `${Math.floor(stats.postsGerados * 0.5)}h`,
-      change: "Estimado",
+      change: "Estimated",
       icon: Clock,
       gradient: "from-orange-500 to-yellow-500"
     },
     {
-      label: "Créditos IA",
+      label: "AI Credits",
       value: stats.aiCredits.toString(),
-      change: `de ${stats.aiCreditsTotal}`,
+      change: `of ${stats.aiCreditsTotal}`,
       icon: CreditCard,
       gradient: "from-yellow-500 to-pink-500"
     }

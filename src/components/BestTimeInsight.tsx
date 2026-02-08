@@ -28,10 +28,10 @@ export function BestTimeInsight() {
 
       setRecommendations(data.recommendations || []);
       setSummary(data.summary || null);
-      toast.success("Análise de horários concluída!");
+      toast.success("Time analysis complete!");
     } catch (error: any) {
       console.error("Error analyzing times:", error);
-      toast.error(error.message || "Erro ao analisar horários");
+      toast.error(error.message || "Error analyzing times");
     } finally {
       setLoading(false);
     }
@@ -48,18 +48,18 @@ export function BestTimeInsight() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-display font-bold">Melhores Horários com IA</h2>
+          <h2 className="text-xl font-display font-bold">Best Times with AI</h2>
         </div>
         <Button onClick={analyzebestTimes} disabled={loading} size="sm" variant="outline">
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Analisando...
+              Analyzing...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4 mr-2" />
-              Analisar Horários
+              Analyze Times
             </>
           )}
         </Button>
@@ -81,7 +81,7 @@ export function BestTimeInsight() {
                 <span className="text-sm text-primary font-bold">{rec.time}</span>
               </div>
               <Badge className={`${confidenceColor(rec.confidence)} text-xs`}>
-                {rec.confidence}% confiança
+                {rec.confidence}% confidence
               </Badge>
               <p className="text-xs text-muted-foreground flex-1 hidden md:block">{rec.reason}</p>
             </div>
@@ -89,7 +89,7 @@ export function BestTimeInsight() {
         </div>
       ) : !loading ? (
         <p className="text-sm text-muted-foreground text-center py-6">
-          Clique em "Analisar Horários" para receber recomendações personalizadas baseadas no seu histórico
+          Click "Analyze Times" to receive personalized recommendations based on your history
         </p>
       ) : null}
     </Card>

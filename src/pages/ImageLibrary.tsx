@@ -44,7 +44,7 @@ export default function ImageLibrary() {
       setImages(data || []);
     } catch (error) {
       console.error("Error loading images:", error);
-      toast.error("Erro ao carregar imagens");
+      toast.error("Error loading images");
     } finally {
       setLoading(false);
     }
@@ -55,14 +55,14 @@ export default function ImageLibrary() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione uma imagem válida");
+      toast.error("Please select a valid image");
       return;
     }
 
     setUploadingFile(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      if (!user) throw new Error("User not authenticated");
 
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -89,11 +89,11 @@ export default function ImageLibrary() {
 
       if (insertError) throw insertError;
 
-      toast.success("Imagem enviada com sucesso!");
+      toast.success("Image uploaded successfully!");
       loadImages();
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Erro ao enviar imagem");
+      toast.error("Error uploading image");
     } finally {
       setUploadingFile(false);
     }
@@ -114,16 +114,16 @@ export default function ImageLibrary() {
 
       if (dbError) throw dbError;
 
-      toast.success("Imagem excluída");
+      toast.success("Image deleted");
       loadImages();
     } catch (error) {
       console.error("Error deleting image:", error);
-      toast.error("Erro ao excluir imagem");
+      toast.error("Error deleting image");
     }
   };
 
   const handleAddTag = async (imageId: string, currentTags: string[]) => {
-    const tag = prompt("Digite a tag:");
+    const tag = prompt("Enter tag:");
     if (!tag) return;
 
     try {
@@ -135,21 +135,21 @@ export default function ImageLibrary() {
 
       if (error) throw error;
 
-      toast.success("Tag adicionada");
+      toast.success("Tag added");
       loadImages();
     } catch (error) {
       console.error("Error adding tag:", error);
-      toast.error("Erro ao adicionar tag");
+      toast.error("Error adding tag");
     }
   };
 
   const filteredImages = images.filter((image) => {
-    const matchesSearch = 
+    const matchesSearch =
       searchTerm === "" ||
       image.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       image.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesTags = 
+    const matchesTags =
       selectedTags.length === 0 ||
       selectedTags.some((tag) => image.tags.includes(tag));
 
@@ -172,16 +172,16 @@ export default function ImageLibrary() {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header />
-      
+
       <main className="container py-8 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold">Biblioteca de Imagens</h1>
+            <h1 className="text-3xl font-display font-bold">Image Library</h1>
             <p className="text-muted-foreground">
-              Gerencie e reutilize seus assets visuais
+              Manage and reuse your visual assets
             </p>
           </div>
-          
+
           <div>
             <Input
               type="file"
@@ -195,7 +195,7 @@ export default function ImageLibrary() {
               <Button asChild disabled={uploadingFile}>
                 <span className="cursor-pointer">
                   <Upload className="h-4 w-4 mr-2" />
-                  {uploadingFile ? "Enviando..." : "Upload de Imagem"}
+                  {uploadingFile ? "Uploading..." : "Image Upload"}
                 </span>
               </Button>
             </Label>
@@ -209,14 +209,14 @@ export default function ImageLibrary() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por descrição ou tags..."
+                  placeholder="Search by description or tags..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            
+
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {allTags.map((tag) => (
@@ -245,12 +245,12 @@ export default function ImageLibrary() {
           <Card className="p-12 text-center">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">
-              {images.length === 0 ? "Nenhuma imagem ainda" : "Nenhuma imagem encontrada"}
+              {images.length === 0 ? "No images yet" : "No images found"}
             </h3>
             <p className="text-muted-foreground">
               {images.length === 0
-                ? "Faça upload da primeira imagem para sua biblioteca"
-                : "Tente ajustar os filtros de busca"}
+                ? "Upload the first image to your library"
+                : "Try adjusting the search filters"}
             </p>
           </Card>
         ) : (
@@ -269,10 +269,10 @@ export default function ImageLibrary() {
                       variant="secondary"
                       onClick={() => {
                         navigator.clipboard.writeText(image.url);
-                        toast.success("URL copiada!");
+                        toast.success("URL copied!");
                       }}
                     >
-                      Copiar URL
+                      Copy URL
                     </Button>
                     <Button
                       size="sm"
@@ -285,7 +285,7 @@ export default function ImageLibrary() {
                 </div>
                 <div className="p-3 space-y-2">
                   <p className="text-sm font-medium line-clamp-1">
-                    {image.description || "Sem descrição"}
+                    {image.description || "No description"}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {image.tags.map((tag) => (
